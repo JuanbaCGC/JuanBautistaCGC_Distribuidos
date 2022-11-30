@@ -9,7 +9,7 @@ Ice.loadSlice('iceflix.ice')
 
 class ClientShell(cmd.Cmd):
         intro = 'Bienvenido al IceFlix menu. Escribe "help" ó "?" para listar las opciones. \n'
-        prompt: str = '(client)'
+        prompt: str = '(Client)'
         # ----- Opciones del menú -----
         def do_adminLogin(self, arg):
             print("Introduce tu nombre de usuario:")
@@ -29,9 +29,6 @@ class ClientShell(cmd.Cmd):
         def do_logout(self,arg):
             print("Vas a salir de tu usuario...")
             return True
-        
-        # def __init__(self):
-        #     self.cmdloop()
 
 class Client(Ice.Application):
     # ----- Clase Cliente -----
