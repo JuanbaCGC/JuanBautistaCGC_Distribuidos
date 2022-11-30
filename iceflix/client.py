@@ -39,8 +39,14 @@ class Client(Ice.Application):
             print("Tienes que insertar el proxy del main. \nSaliendo del programa...")
             return -1
         
-        proxy = argv[1]
-        
+        counter = 0
+        if(counter != 3):
+            counter+=1
+            proxy = self.communicator().stringToProxy(argv[1])
+            main = IceFlix.MainPrx.checkedCast(proxy)
+            
+            if not main:
+                raise TemporaryUnavailable('Invalid proxy: ', proxy)
             
         ClientShell().cmdloop()
         
