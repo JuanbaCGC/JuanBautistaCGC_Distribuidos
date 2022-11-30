@@ -34,6 +34,14 @@ class Client(Ice.Application):
     # ----- Clase Cliente -----
         
     def run(self, argv):
+        print("Cliente iniciado:")
+        if(len(sys.argv) != 2):
+            print("Tienes que insertar el proxy del main. \nSaliendo del programa...")
+            return -1
+        
+        proxy = argv[1]
+        
+            
         ClientShell().cmdloop()
         
 sys.exit(Client().main(sys.argv))
