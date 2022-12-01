@@ -46,10 +46,11 @@ class Client(Ice.Application):
         proxy = self.communicator().stringToProxy(argv[1])
         while(counter != 3 or checked == False):
             counter+=1
-            # try:
-            main = IceFlix.MainPrx.checkedCast(proxy)
-            # except IceFlix.TemporaryUnavailable:
-
+            try:
+                main = IceFlix.MainPrx.checkedCast(proxy)
+            except IceFlix.Exception:
+                print("LSJAFLSDJFSL")
+                continue
             if not main:
                 print("Intento número ",counter," de conexión fallido por el proxy.")
                 time.sleep(5)
