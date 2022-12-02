@@ -7,16 +7,25 @@ import sys
 import getpass
 import time
 import Ice
+from threading import Thread
 Ice.loadSlice('iceflix.ice')
 import IceFlix
 
 class ClientShell(cmd.Cmd):
         intro = 'Bienvenido al IceFlix menu. Escribe "help" ó "?" para listar las opciones. \n'
-        prompt: str = '(Client)'
+        prompt: str = '(Client menu)'
         # ----- Opciones del menú -----
         def do_adminLogin(self, arg):
             print("Introduce el token:")
             token = input()
+            is_admin = self.authenticator.isAdmin(token)
+            is_admin = True
+            if (is_admin):
+                print("Es admin... \n")
+                t = Thread(target=AdminShell(self.main).cmdloop())
+                t.start()
+                t.join()
+                
 
         def do_userLogin(self,arg):
             print("Introduce tu nombre de usuario:")
@@ -26,15 +35,39 @@ class ClientShell(cmd.Cmd):
             pass_hash = hashlib.sha256(password.encode()).hexdigest()
             print(pass_hash)
             self.authenticator.refreshAuthorization(user_name, pass_hash)
-        # def do_nameSearch(self,arg):
-        #     print("Introduce el nombre por búsqueda...")
 
-        def do_logout(self,arg):
-            print("Vas a salir de tu usuario...")
-            return True
+        
 
         def __init__(self, main):
             super(ClientShell, self).__init__()
+            self.main = main
+            self.authenticator = main.getAuthenticator()
+
+class AdminShell(cmd.Cmd):
+    intro = 'Menu de administrador. Escribe "help" ó "?" para listar las opciones. \n'
+    prompt: str = '(Admin menu)'
+        
+    def do_addUser(self,arg):
+        print("Adding a user")
+        
+    def do_deleteUser(self,arg):
+        print("Deleting a user")
+        
+    def do_renameFile(self,arg):
+        print("Renaming a file")
+        
+    def do_deleteFile(self,arg):
+        print("Deleting a file")
+        
+    def do_downloadFile(self,arg):
+        print("Downloading a file")
+        
+    def do_logout(self,arg):
+        print("Loging out...")
+        return 1
+        
+    def __init__(self, main):
+            super(AdminShell, self).__init__()
             self.main = main
             self.authenticator = main.getAuthenticator()
 
@@ -61,10 +94,10 @@ class Client(Ice.Application):
                 time.sleep(1)
                 continue
 
-        # if(checked):
-        ClientShell(main).cmdloop()
-        # else:
-        print("Saliendo del programa del cliente...")
+        if(checked):
+            ClientShell(main).cmdloop()
+        else:
+            print("Saliendo del programa del cliente...")
         return -1
 
 sys.exit(Client().main(sys.argv))
