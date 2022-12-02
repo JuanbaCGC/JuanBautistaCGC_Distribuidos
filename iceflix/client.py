@@ -13,7 +13,7 @@ import IceFlix
 
 class ClientShell(cmd.Cmd):
         intro = 'Bienvenido al IceFlix menu. Escribe "help" ó "?" para listar las opciones. \n'
-        prompt: str = '(Client menu)'
+        prompt: str = '(Off-line)'
         # ----- Opciones del menú del cliente ----- #
         def do_adminLogin(self, arg):
             print("Introduce el token:")
@@ -48,7 +48,7 @@ class ClientShell(cmd.Cmd):
 
 class AdminShell(cmd.Cmd):
     intro = 'Menu de administrador. Escribe "help" ó "?" para listar las opciones. \n'
-    prompt: str = '(Admin menu)'
+    prompt: str = '(Admin loggeado)'
     # ----- Opciones del menú del administrador ----- #
     def do_addUser(self,arg):
         print("Introduce el nombre del usuario a añadir:")
@@ -84,7 +84,7 @@ class AdminShell(cmd.Cmd):
 
 class NormalUserShell(cmd.Cmd):
     intro = 'Inicio de sesión completado. \nEscribe "help" ó "?" para listar las opciones. \n'
-    prompt: str = '(User)'
+    prompt: str = '(on-line)'
     
     def do_TilesByName(self,arg):
         print("Buscando archivos por nombre...")
@@ -96,10 +96,11 @@ class NormalUserShell(cmd.Cmd):
         print("Cerrando sesión del usuario")
         return 1
     
-    def __init__(self, main, user_token):
+    def __init__(self, main, user_name,user_token):
         super(NormalUserShell, self).__init__()
         self.main = main
         self.authenticator = main.getAuthenticator()
+        self.user_name = user_name
         self.user_token = user_token
         
 class Client(Ice.Application):
