@@ -85,6 +85,7 @@ class AdminShell(cmd.Cmd):
     prompt: str = '(Admin on-line)'
     # ----- Opciones del menú del administrador ----- #
     def do_addUser(self,arg):
+        'Añadir un usuario a la base de datos del programa.'
         user_name = input("Introduce el nombre del usuario a añadir:")
         password = getpass.getpass("Contraseña:")
         hassed_pash = hashlib.sha256(password.encode()).hexdigest()
@@ -96,6 +97,7 @@ class AdminShell(cmd.Cmd):
             print("No puedes realizar esta acción.")
         
     def do_removeUser(self,arg):
+        'Eliminar un usuario a la base de datos del programa.'
         user_name = input("Introduce el nombre del usuario a eliminar:")
         try:
             self.authenticator.removeUser(user_name,self.admin_token)
@@ -105,6 +107,7 @@ class AdminShell(cmd.Cmd):
             print("No puedes realizar esta acción.")
             
     def do_renameFile(self,arg):
+        'Renombrar un fichero del catálogo.'
         media = input("Introduce el nombre del archivo del catálogo que quieres editar: ")
         nombre_nuevo = input("Introduce el nuevo nombre del archivo:")
         try:
@@ -115,17 +118,21 @@ class AdminShell(cmd.Cmd):
             print("Error al obtener el archivo del catálogo.")
         
     def do_deleteFile(self,arg):
+        'Eliminar un fichero del catálogo.'
         id = input("Introduce el id del archivo del catálogo a eliminar:")
         lista = self.catalog.getTilesByName(id,True)
         if(len(lista) == 0):
             print("No existe ningún archivo con el id indicado")
         else:
-            self.catalog.removeMedia(id,self.file_service)
+            print("a")
+            #self.catalog.removeMedia(id,self.file_service)
             
     def do_downloadFile(self,arg):
+        'Descargar un fichero del catálogo.'
         print("Downloading a file")
         
     def do_logout(self,arg):
+        'Cerrar sesión como administrador.'
         print("Cerrando sesión del administrador...")
         return 1
         
@@ -134,7 +141,7 @@ class AdminShell(cmd.Cmd):
         self.main = main
         self.authenticator = main.getAuthenticator()
         self.catalog = main.getCatalog()
-        self.file_service = main.getFileService()
+        #self.file_service = main.getFileService()
         self.admin_token = admin_token
 
 class NormalUserShell(cmd.Cmd):
