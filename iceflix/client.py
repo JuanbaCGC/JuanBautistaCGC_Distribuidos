@@ -16,6 +16,29 @@ def show_sequence(lista_nombres):
     while pos < len(lista_nombres):
         print(str(pos+1) + "-"+ lista_nombres[pos])
         pos+=1
+        
+def search_by_name(catalog):
+    name = input("Introduce el nombre para realizar la búsqueda:")
+    print("Elije una opción (introduce un número 1 o 2).")
+    print("1. Búsqueda por término exacto.")
+    print("2. Búsqueda títulos que incluyan la palabra a buscar.")
+    correcto = False
+    while(correcto is False):
+        try:
+            opcion = int(input())
+            if opcion==1 or opcion==2:
+                correcto = True
+            else:
+                print("Introduce un número del 1 al 2.")
+        except ValueError:
+            print("Debes introducir un número.")
+            
+        lista = catalog.getTilesByName(name,opcion==1)  
+        if(len(lista) == 0):
+            print("No se han encontrado resultados en la búsqueda.")
+        else:
+            show_sequence(lista)
+    return 0        
 
 class ClientShell(cmd.Cmd):
         intro = 'Bienvenido al IceFlix menu. Escribe "help" ó "?" para listar las opciones. \n'
@@ -24,8 +47,7 @@ class ClientShell(cmd.Cmd):
         def do_adminLogin(self, arg):
             'Inicia sesión como administrador para gestionar la aplicación distribuida'
             token = input("Introduce el token:")
-            #is_admin = self.authenticator.isAdmin(token)
-            is_admin = True
+            is_admin = self.authenticator.isAdmin(token)
             if (is_admin):
                 print("Es admin... \n")
                 t = Thread(target=AdminShell(self.main, token).cmdloop())
@@ -48,26 +70,7 @@ class ClientShell(cmd.Cmd):
 
         def do_searchByName(self,arg):
             'Opción para realizar una búsqueda por el catálogo introduciendo un nombre a buscar'
-            name = input("Introduce el nombre para realizar la búsqueda:")
-            print("Elije una opción (introduce un número 1 o 2).")
-            print("1. Búsqueda por término exacto.")
-            print("2. Búsqueda títulos que incluyan la palabra a buscar.")
-            correcto = False
-            while(correcto is False):
-                try:
-                    opcion = int(input())
-                    if opcion==1 or opcion==2:
-                        correcto = True
-                    else:
-                        print("Introduce un número del 1 al 2.")
-                except ValueError:
-                    print("Debes introducir un número.")
-            
-            lista = self.catalog.getTilesByName(name,opcion==1)  
-            if(len(lista) == 0):
-                print("No se han encontrado resultados en la búsqueda.")
-            else:
-                show_sequence(lista)
+            search_by_name(self.catalog)
             
         def do_exit(self,arg):
             'Opción para salir de la aplicación del cliente.'
@@ -97,7 +100,7 @@ class AdminShell(cmd.Cmd):
             print("No puedes realizar esta acción.")
         
     def do_removeUser(self,arg):
-        'Eliminar un usuario a la base de datos del programa.'
+        'Eliminar un usuario de la base de datos del programa.'
         user_name = input("Introduce el nombre del usuario a eliminar:")
         try:
             self.authenticator.removeUser(user_name,self.admin_token)
@@ -124,8 +127,7 @@ class AdminShell(cmd.Cmd):
         if(len(lista) == 0):
             print("No existe ningún archivo con el id indicado")
         else:
-            print("a")
-            #self.catalog.removeMedia(id,self.file_service)
+            self.catalog.removeMedia(id,self.file_service)
             
     def do_downloadFile(self,arg):
         'Descargar un fichero del catálogo.'
@@ -141,7 +143,7 @@ class AdminShell(cmd.Cmd):
         self.main = main
         self.authenticator = main.getAuthenticator()
         self.catalog = main.getCatalog()
-        #self.file_service = main.getFileService()
+        self.file_service = main.getFileService()
         self.admin_token = admin_token
 
 class NormalUserShell(cmd.Cmd):
@@ -149,12 +151,13 @@ class NormalUserShell(cmd.Cmd):
     prompt: str = '(on-line)'
     
     def do_SearchByName(self,arg):
-        print("Buscando archivos por nombre...")
+        'Búsqueda por nombre en los archivos del catálogo.'
+        search_by_name(self.catalog)
         
     def do_SearchByTags(self,arg):
+        'Búsqueda por tags en los archivos del catálogo.'
         tag_list = input("Introduce los tags separados por comas: ")
         tag_list = tag_list.split(sep=',')
-        print("AAA->",self.user_name)
         print("Elije una opción (introduce un número 1 o 2).")
         print("1. Búsqueda de todos los tags")
         print("2. Búsqueda que incluya algún tag")
@@ -179,6 +182,7 @@ class NormalUserShell(cmd.Cmd):
             show_sequence(lista)
         
     def do_logout(self,arg):
+        'Cerrar sesión en el usuario', self.user_name,''
         print("Cerrando sesión del usuario", self.user_name)
         return 1
     
