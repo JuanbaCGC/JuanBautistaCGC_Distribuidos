@@ -24,8 +24,8 @@ class ClientShell(cmd.Cmd):
         def do_adminLogin(self, arg):
             print("Introduce el token:")
             token = input()
-            #is_admin = self.authenticator.isAdmin(token)
-            is_admin = True
+            is_admin = self.authenticator.isAdmin(token)
+            #is_admin = True
             if (is_admin):
                 print("Es admin... \n")
                 t = Thread(target=AdminShell(self.main, token).cmdloop())
@@ -37,14 +37,14 @@ class ClientShell(cmd.Cmd):
             user_name = input()
             print("Introduce la contraseña:")
             password = getpass.getpass("Contraseña: ")
-            pass_hash = hashlib.sha256(password.encode()).hexdigest()
+            hassed_pash = hashlib.sha256(password.encode()).hexdigest()
             #user_token = ""
             try:
-                user_token = self.authenticator.refreshAuthorization(user_name, pass_hash)
+                user_token = self.authenticator.refreshAuthorization(user_name, hassed_pash)
             except IceFlix.Unauthorized:
                 print("El usuario o contraseña son incorrectos.")
             else:
-                t = Thread(target=NormalUserShell(self.main, user_name,user_token).cmdloop())
+                t = Thread(target=NormalUserShell(self.main, user_name, hassed_pash, user_token).cmdloop())
                 t.start()
                 t.join()
 
@@ -95,8 +95,12 @@ class AdminShell(cmd.Cmd):
     def do_removeUser(self,arg):
         print("Introduce el nombre del usuario a eliminar:")
         user_name = input()
-        self.authenticator.removeUser(user_name,self.admin_token)
-        
+        try:
+            self.authenticator.removeUser(user_name,self.admin_token)
+        except IceFlix.TemporaryUnavailable:
+            print("El nombre del usuario introducido no existe.")
+        except IceFlix.Unauthorized:
+            print("No puedes realizar esta acción")
     def do_renameFile(self,arg):
         print("Renaming a file")
         
@@ -123,10 +127,10 @@ class NormalUserShell(cmd.Cmd):
     def do_SearchByName(self,arg):
         print("Buscando archivos por nombre...")
         
-    def do_SearchByTag(self,arg):
+    def do_SearchByTags(self,arg):
         tag_list = input("Introduce los tags separados por comas: ")
         tag_list = tag_list.split(sep=',')
-        print("AAA->",tag_list)
+        print("AAA->",self.user_name)
         print("Elije una opción (introduce un número 1 o 2).")
         print("1. Búsqueda de todos los tags")
         print("2. Búsqueda que incluya algún tag")
@@ -140,6 +144,10 @@ class NormalUserShell(cmd.Cmd):
                     print("Introduce un número del 1 al 2")
             except ValueError:
                 print("Introduce un número")
+        # Comprobamos si el token ha caducado o no, y si es así, lo actualizamos
+        if(self.authenticator.isAuthorized(self.user_token) is False):
+            self.user_token = self.authenticator.refreshAuthorization(self.user_name,self.hassed_pas)
+        
         lista = self.catalog.getTilesByTags(tag_list,opcion==1,self.user_token)
         if(len(lista) == 0):
             print("No se han encontrado resultados para la búsqueda")
@@ -150,12 +158,13 @@ class NormalUserShell(cmd.Cmd):
         print("Cerrando sesión del usuario")
         return 1
     
-    def __init__(self, main, user_name,user_token):
+    def __init__(self, main, user_name, hassed_pass, user_token):
         super(NormalUserShell, self).__init__()
         self.main = main
         self.authenticator = main.getAuthenticator()
         self.catalog = main.getCatalog()
         self.user_name = user_name
+        self.hassed_pas = hassed_pass
         self.user_token = user_token
         
 class Client(Ice.Application):
