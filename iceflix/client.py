@@ -22,8 +22,8 @@ class ClientShell(cmd.Cmd):
         prompt: str = '(Off-line)'
         # ----- Opciones del menú del cliente ----- #
         def do_adminLogin(self, arg):
-            print("Introduce el token:")
-            token = input()
+            'Inicia sesión como administrador para gestionar la aplicación distribuida'
+            token = input("Introduce el token:")
             is_admin = self.authenticator.isAdmin(token)
             #is_admin = True
             if (is_admin):
@@ -33,12 +33,10 @@ class ClientShell(cmd.Cmd):
                 t.join()
 
         def do_userLogin(self,arg):
-            print("Introduce tu nombre de usuario:")
-            user_name = input()
-            print("Introduce la contraseña:")
+            'Inicia sesión como usuario para hacer búsquedas por nombres y por tags'
+            user_name = input("Introduce tu nombre de usuario:")
             password = getpass.getpass("Contraseña: ")
             hassed_pash = hashlib.sha256(password.encode()).hexdigest()
-            #user_token = ""
             try:
                 user_token = self.authenticator.refreshAuthorization(user_name, hassed_pash)
             except IceFlix.Unauthorized:
@@ -49,6 +47,7 @@ class ClientShell(cmd.Cmd):
                 t.join()
 
         def do_searchByName(self,arg):
+            'Opción para realizar una búsqueda por el catálogo introduciendo un nombre a buscar'
             name = input("Introduce el nombre para realizar la búsqueda:")
             print("Elije una opción (introduce un número 1 o 2).")
             print("1. Búsqueda por término exacto.")
@@ -71,6 +70,7 @@ class ClientShell(cmd.Cmd):
                 show_sequence(lista)
             
         def do_exit(self,arg):
+            'Opción para salir de la aplicación del cliente.'
             print("Saliendo del cliente...")
             return 1
         
@@ -82,19 +82,16 @@ class ClientShell(cmd.Cmd):
 
 class AdminShell(cmd.Cmd):
     intro = 'Menu de administrador. Escribe "help" ó "?" para listar las opciones. \n'
-    prompt: str = '(Admin loggeado)'
+    prompt: str = '(Admin on-line)'
     # ----- Opciones del menú del administrador ----- #
     def do_addUser(self,arg):
-        print("Introduce el nombre del usuario a añadir:")
-        user_name = input()
-        print("Introduce la contraseña:")
+        user_name = input("Introduce el nombre del usuario a añadir:")
         password = getpass.getpass("Contraseña: ")
         hassed_pash = hashlib.sha256(password.encode()).hexdigest()
         self.authenticator.addUser(user_name, hassed_pash, self.admin_token)
         
     def do_removeUser(self,arg):
-        print("Introduce el nombre del usuario a eliminar:")
-        user_name = input()
+        user_name = input("Introduce el nombre del usuario a eliminar:")
         try:
             self.authenticator.removeUser(user_name,self.admin_token)
         except IceFlix.TemporaryUnavailable:
@@ -155,7 +152,7 @@ class NormalUserShell(cmd.Cmd):
             show_sequence(lista)
         
     def do_logout(self,arg):
-        print("Cerrando sesión del usuario")
+        print("Cerrando sesión del usuario", self.user_name)
         return 1
     
     def __init__(self, main, user_name, hassed_pass, user_token):
@@ -168,7 +165,7 @@ class NormalUserShell(cmd.Cmd):
         self.user_token = user_token
         
 class Client(Ice.Application):
-    # ----- Clase Cliente -----
+    # ----- Clase Cliente ----- #
     def run(self, argv):
         print("Cliente iniciado:")
         if(len(sys.argv) != 2):
@@ -189,7 +186,7 @@ class Client(Ice.Application):
             else:
                 break
         if not comprobacion:
-            raise RuntimeError('Error con el proxy')
+            raise RuntimeError('Se han realizado todos los intentos de conexión. Error con el proxy')
         else:
             ClientShell(main).cmdloop()
         
