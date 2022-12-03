@@ -11,6 +11,12 @@ from threading import Thread
 Ice.loadSlice('iceflix.ice')
 import IceFlix
 
+def show_sequence(lista_nombres):
+    pos=0
+    while pos < len(lista_nombres):
+        print(str(pos+1) + "-"+ lista_nombres[pos])
+        pos+=1
+
 class ClientShell(cmd.Cmd):
         intro = 'Bienvenido al IceFlix menu. Escribe "help" ó "?" para listar las opciones. \n'
         prompt: str = '(Off-line)'
@@ -18,7 +24,7 @@ class ClientShell(cmd.Cmd):
         def do_adminLogin(self, arg):
             print("Introduce el token:")
             token = input()
-           # is_admin = self.authenticator.isAdmin(token)
+            #is_admin = self.authenticator.isAdmin(token)
             is_admin = True
             if (is_admin):
                 print("Es admin... \n")
@@ -32,11 +38,15 @@ class ClientShell(cmd.Cmd):
             print("Introduce la contraseña:")
             password = getpass.getpass("Contraseña: ")
             pass_hash = hashlib.sha256(password.encode()).hexdigest()
-            user_token = ""
-            #user_token = self.authenticator.refreshAuthorization(user_name, pass_hash)
-            t = Thread(target=NormalUserShell(self.main, user_token).cmdloop())
-            t.start()
-            t.join()
+            #user_token = ""
+            try:
+                user_token = self.authenticator.refreshAuthorization(user_name, pass_hash)
+            except IceFlix.Unauthorized:
+                print("El usuario o contraseña son incorrectos.")
+            else:
+                t = Thread(target=NormalUserShell(self.main, user_name,user_token).cmdloop())
+                t.start()
+                t.join()
 
         def do_searchByName(self,arg):
             name = input("Introduce el nombre para realizar la búsqueda:")
@@ -50,11 +60,16 @@ class ClientShell(cmd.Cmd):
                     if opcion==1 or opcion==2:
                         correcto = True
                     else:
-                        print("Introduce un número del 1 al 2")
+                        print("Introduce un número del 1 al 2.")
                 except ValueError:
-                    print("Introduce un número")
+                    print("Introduce un número.")
             
-            media_list = self.authenticator.getTilesByName(name,opcion==1)   
+            lista = self.catalog.getTilesByName(name,opcion==1)  
+            if(len(lista) == 0):
+                print("No se han encontrado resultados en la búsqueda.")
+            else:
+                show_sequence(lista)
+            
         def do_exit(self,arg):
             print("Saliendo del cliente...")
             return 1
@@ -75,12 +90,12 @@ class AdminShell(cmd.Cmd):
         print("Introduce la contraseña:")
         password = getpass.getpass("Contraseña: ")
         hassed_pash = hashlib.sha256(password.encode()).hexdigest()
-        #self.authenticator.addUser(user_name, hassed_pash, self.admin_token)
+        self.authenticator.addUser(user_name, hassed_pash, self.admin_token)
         
     def do_removeUser(self,arg):
         print("Introduce el nombre del usuario a eliminar:")
         user_name = input()
-        #self.authenticator.removeUser(user_name,self.admin_token)
+        self.authenticator.removeUser(user_name,self.admin_token)
         
     def do_renameFile(self,arg):
         print("Renaming a file")
@@ -98,21 +113,22 @@ class AdminShell(cmd.Cmd):
     def __init__(self, main, admin_token):
         super(AdminShell, self).__init__()
         self.main = main
-        #self.authenticator = main.getAuthenticator()
+        self.authenticator = main.getAuthenticator()
         self.admin_token = admin_token
 
 class NormalUserShell(cmd.Cmd):
     intro = 'Inicio de sesión completado. \nEscribe "help" ó "?" para listar las opciones. \n'
     prompt: str = '(on-line)'
     
-    def do_TilesByName(self,arg):
+    def do_SearchByName(self,arg):
         print("Buscando archivos por nombre...")
         
-    def do_TilesByTag(self,arg):
+    def do_SearchByTag(self,arg):
         tag_list = input("Introduce los tags separados por comas: ")
         tag_list = tag_list.split(sep=',')
+        print("AAA->",tag_list)
         print("Elije una opción (introduce un número 1 o 2).")
-        print("1. Búsqueda con todos los tags")
+        print("1. Búsqueda de todos los tags")
         print("2. Búsqueda que incluya algún tag")
         correcto = False
         while(correcto is False):
@@ -124,9 +140,11 @@ class NormalUserShell(cmd.Cmd):
                     print("Introduce un número del 1 al 2")
             except ValueError:
                 print("Introduce un número")
-        self.catalog.getTilesByTags(tag_list,opcion==1,self.user_token)
-        
-        
+        lista = self.catalog.getTilesByTags(tag_list,opcion==1,self.user_token)
+        if(len(lista) == 0):
+            print("No se han encontrado resultados para la búsqueda")
+        else:
+            show_sequence(lista)
         
     def do_logout(self,arg):
         print("Cerrando sesión del usuario")
@@ -135,7 +153,7 @@ class NormalUserShell(cmd.Cmd):
     def __init__(self, main, user_name,user_token):
         super(NormalUserShell, self).__init__()
         self.main = main
-        #self.authenticator = main.getAuthenticator()
+        self.authenticator = main.getAuthenticator()
         self.catalog = main.getCatalog()
         self.user_name = user_name
         self.user_token = user_token
@@ -149,22 +167,23 @@ class Client(Ice.Application):
             return -1
 
         counter = 0
-        checked = False
-        main=""
-        proxy = self.communicator().stringToProxy(argv[1])
-        while(counter != 3 or checked):
-            counter+=1
+        comprobacion = False
+        while(counter != 3):
+            counter +=1
             try:
+                proxy = self.communicator().stringToProxy(argv[1])
                 main = IceFlix.MainPrx.checkedCast(proxy)
-                checked = True
+                comprobacion = True
             except:
                 print("Intento número",counter,"de conexión fallido por el proxy.")
-                time.sleep(0.5)
-
-        #if(checked):
+                time.sleep(5)
+            else:
+                break
+        if not comprobacion:
+            raise RuntimeError('Error con el proxy')
+        else:
             ClientShell(main).cmdloop()
-        #else:
-            print("Se ha alcanzado el máximo de intentos de conexión. \nSaliendo del programa del cliente...")
-            return -1
+        
+        return -1
 
 sys.exit(Client().main(sys.argv))
