@@ -24,8 +24,8 @@ class ClientShell(cmd.Cmd):
         def do_adminLogin(self, arg):
             'Inicia sesión como administrador para gestionar la aplicación distribuida'
             token = input("Introduce el token:")
-            is_admin = self.authenticator.isAdmin(token)
-            #is_admin = True
+            #is_admin = self.authenticator.isAdmin(token)
+            is_admin = True
             if (is_admin):
                 print("Es admin... \n")
                 t = Thread(target=AdminShell(self.main, token).cmdloop())
@@ -61,7 +61,7 @@ class ClientShell(cmd.Cmd):
                     else:
                         print("Introduce un número del 1 al 2.")
                 except ValueError:
-                    print("Introduce un número.")
+                    print("Debes introducir un número.")
             
             lista = self.catalog.getTilesByName(name,opcion==1)  
             if(len(lista) == 0):
@@ -86,9 +86,14 @@ class AdminShell(cmd.Cmd):
     # ----- Opciones del menú del administrador ----- #
     def do_addUser(self,arg):
         user_name = input("Introduce el nombre del usuario a añadir:")
-        password = getpass.getpass("Contraseña: ")
+        password = getpass.getpass("Contraseña:")
         hassed_pash = hashlib.sha256(password.encode()).hexdigest()
-        self.authenticator.addUser(user_name, hassed_pash, self.admin_token)
+        try:
+            self.authenticator.addUser(user_name, hassed_pash, self.admin_token)
+        except IceFlix.Unauthorized:
+            print("No se ha añadido al usuario, token de administrador no válido.")
+        except IceFlix.TemporaryUnavailable:
+            print("No puedes realizar esta acción.")
         
     def do_removeUser(self,arg):
         user_name = input("Introduce el nombre del usuario a eliminar:")
@@ -97,13 +102,26 @@ class AdminShell(cmd.Cmd):
         except IceFlix.TemporaryUnavailable:
             print("El nombre del usuario introducido no existe.")
         except IceFlix.Unauthorized:
-            print("No puedes realizar esta acción")
+            print("No puedes realizar esta acción.")
+            
     def do_renameFile(self,arg):
-        print("Renaming a file")
+        media = input("Introduce el nombre del archivo del catálogo que quieres editar: ")
+        nombre_nuevo = input("Introduce el nuevo nombre del archivo:")
+        try:
+            self.catalog.getTile(media,self.admin_token)
+        except IceFlix.WrongMediaId:
+            print("No se ha encontrado ningún archivo en el catálogo con el id ", media,".")
+        except:
+            print("Error al obtener el archivo del catálogo.")
         
     def do_deleteFile(self,arg):
-        print("Deleting a file")
-        
+        id = input("Introduce el id del archivo del catálogo a eliminar:")
+        lista = self.catalog.getTilesByName(id,True)
+        if(len(lista) == 0):
+            print("No existe ningún archivo con el id indicado")
+        else:
+            self.catalog.removeMedia(id,self.file_service)
+            
     def do_downloadFile(self,arg):
         print("Downloading a file")
         
@@ -115,6 +133,8 @@ class AdminShell(cmd.Cmd):
         super(AdminShell, self).__init__()
         self.main = main
         self.authenticator = main.getAuthenticator()
+        self.catalog = main.getCatalog()
+        self.file_service = main.getFileService()
         self.admin_token = admin_token
 
 class NormalUserShell(cmd.Cmd):
