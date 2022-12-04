@@ -16,7 +16,11 @@ def show_sequence(lista_nombres):
     while pos < len(lista_nombres):
         print(str(pos+1) + "-"+ lista_nombres[pos])
         pos+=1
-        
+    
+    # Método para obtener los tags de los identificadores que devuelve una búsqueda    
+def get_tags():
+    return 0
+    
 def search_by_name(catalog):
     name = input("Introduce el nombre para realizar la búsqueda:")
     print("Elije una opción (introduce un número 1 o 2).")
@@ -26,18 +30,17 @@ def search_by_name(catalog):
     while(correcto is False):
         try:
             opcion = int(input())
-            if opcion==1 or opcion==2:
-                correcto = True
-            else:
-                print("Introduce un número del 1 al 2.")
         except ValueError:
             print("Debes introducir un número.")
-            
-        lista = catalog.getTilesByName(name,opcion==1)  
-        if(len(lista) == 0):
-            print("No se han encontrado resultados en la búsqueda.")
+        if opcion==1 or opcion==2:
+            correcto = True
         else:
-            show_sequence(lista)
+            print("Introduce un número del 1 al 2.")
+    lista = catalog.getTilesByName(name,opcion==1)  
+    if(len(lista) == 0):
+        print("No se han encontrado resultados en la búsqueda.")
+    else:
+        show_sequence(lista)
     return 0        
 
 class ClientShell(cmd.Cmd):
@@ -47,7 +50,8 @@ class ClientShell(cmd.Cmd):
         def do_adminLogin(self, arg):
             'Inicia sesión como administrador para gestionar la aplicación distribuida'
             token = input("Introduce el token:")
-            is_admin = self.authenticator.isAdmin(token)
+            #is_admin = self.authenticator.isAdmin(token)
+            is_admin = True
             if (is_admin):
                 print("Es admin... \n")
                 t = Thread(target=AdminShell(self.main, token).cmdloop())
@@ -132,7 +136,7 @@ class AdminShell(cmd.Cmd):
     def do_downloadFile(self,arg):
         'Descargar un fichero del catálogo.'
         print("Downloading a file")
-        
+    
     def do_logout(self,arg):
         'Cerrar sesión como administrador.'
         print("Cerrando sesión del administrador...")
@@ -141,6 +145,7 @@ class AdminShell(cmd.Cmd):
     def __init__(self, main, admin_token):
         super(AdminShell, self).__init__()
         self.main = main
+        self.selection = False
         self.authenticator = main.getAuthenticator()
         self.catalog = main.getCatalog()
         self.file_service = main.getFileService()
@@ -149,9 +154,9 @@ class AdminShell(cmd.Cmd):
 class NormalUserShell(cmd.Cmd):
     intro = 'Inicio de sesión completado. \nEscribe "help" ó "?" para listar las opciones. \n'
     prompt: str = '(on-line)'
-    
     def do_SearchByName(self,arg):
         'Búsqueda por nombre en los archivos del catálogo.'
+        # ¿Se debería de comprobar el token al hacer búsqueda por nombre un usuario normal?
         search_by_name(self.catalog)
         
     def do_SearchByTags(self,arg):
@@ -180,10 +185,15 @@ class NormalUserShell(cmd.Cmd):
             print("No se han encontrado resultados para la búsqueda")
         else:
             show_sequence(lista)
+    
+    def do_selectionTile(self,arg):
+        tile = input("Introduce la película que quieres selccionar:")
+        self.selection = True
         
+    
     def do_logout(self,arg):
-        'Cerrar sesión en el usuario', self.user_name,''
-        print("Cerrando sesión del usuario", self.user_name)
+        'Cerrar sesión en el usuario'
+        print("Cerrando sesión de ", self.user_name)
         return 1
     
     def __init__(self, main, user_name, hassed_pass, user_token):
