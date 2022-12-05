@@ -8,7 +8,7 @@ import getpass
 import time
 import Ice
 from threading import Thread
-Ice.loadSlice('iceflix.ice')
+#Ice.loadSlice('iceflix.ice')
 import IceFlix
 
 def show_sequence(lista_nombres):
