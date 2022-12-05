@@ -10,18 +10,35 @@ import Ice
 from threading import Thread
 #Ice.loadSlice('iceflix.ice')
 import IceFlix
-
-def show_sequence(lista_nombres):
-    pos=0
-    while pos < len(lista_nombres):
-        print(str(pos+1) + "-"+ lista_nombres[pos])
-        pos+=1
     
     # Método para obtener los tags de los identificadores que devuelve una búsqueda    
-def get_tags():
+def mostrar_busqueda(lista, token_usuario, catalog):
+    pos = 0
+    print("Resultado de búsqueda:")
+    while pos < len(lista):
+        media = catalog.getTile(lista[pos],token_usuario)
+        pos +=1
+        print(pos, "->", media.info.name,".Tags:", media.info.tags)
     return 0
     
-def search_by_name(catalog):
+def mostrar_busqueda_anonima(lista,catalog):
+    pos = 0
+    print("Resultado de búsqueda:")
+    while pos < len(lista):
+        print(str(pos+1) + "-"+ lista[pos])
+        pos+=1
+    return 0
+
+def existe(nombre, lista, catalog, token_usuario):
+    pos = 0
+    while pos < len(lista):
+        media = catalog.getTile(lista[pos],token_usuario)
+        pos +=1
+        if (media.info.name == nombre):
+            return True
+    return False
+
+def busqueda_por_nombres(token_usuario,catalog):
     name = input("Introduce el nombre para realizar la búsqueda:")
     print("Elije una opción (introduce un número 1 o 2).")
     print("1. Búsqueda por término exacto.")
@@ -39,8 +56,10 @@ def search_by_name(catalog):
     lista = catalog.getTilesByName(name,opcion==1)  
     if(len(lista) == 0):
         print("No se han encontrado resultados en la búsqueda.")
+    elif token_usuario == "":
+        mostrar_busqueda_anonima(lista,catalog)
     else:
-        show_sequence(lista)
+        mostrar_busqueda(lista,token_usuario,catalog)
     return lista        
 
 class ClientShell(cmd.Cmd):
@@ -74,7 +93,7 @@ class ClientShell(cmd.Cmd):
 
         def do_searchByName(self,arg):
             'Opción para realizar una búsqueda por el catálogo introduciendo un nombre a buscar'
-            search_by_name(self.catalog)
+            busqueda_por_nombres("",self.catalog)
             
         def do_exit(self,arg):
             'Opción para salir de la aplicación del cliente.'
@@ -157,7 +176,7 @@ class NormalUserShell(cmd.Cmd):
     def do_SearchByName(self,arg):
         'Búsqueda por nombre en los archivos del catálogo.'
         # ¿Se debería de comprobar el token al hacer búsqueda por nombre un usuario normal?
-        self.lista = search_by_name(self.catalog)
+        self.lista = busqueda_por_nombres(self.user_token,self.catalog)
         
     def do_SearchByTags(self,arg):
         'Búsqueda por tags en los archivos del catálogo.'
@@ -169,7 +188,7 @@ class NormalUserShell(cmd.Cmd):
         correcto = False
         while(correcto is False):
             try:
-                opcion = int(input())
+                opcion = int(input("Eleccion:"))
                 if opcion==1 or opcion==2:
                     correcto = True
                 else:
@@ -184,13 +203,22 @@ class NormalUserShell(cmd.Cmd):
         if(len(lista) == 0):
             print("No se han encontrado resultados para la búsqueda")
         else:
-            self.lista = show_sequence(lista)
+            self.lista = busqueda_por_nombres(self.user_token,self.catalog)
             
     def do_selectionTile(self,arg):
-        tile = input("Introduce la película que quieres selccionar:")
-        self.selection = True
-        self.tile = tile
-        
+        if(len(self.lista) == 0):
+            print("No se ha realizado ninguna búsqueda anteriormente, debes realizar una antes de seleccionar una película.")
+        else:
+            while(True):
+                tile = input("Introduce la película que quieres selecionar:")
+                if existe(tile,self.lista,self.catalog, self.user_token) is False:
+                    print("No hay ninguna película buscada con ese nombre.")
+                else:
+                    print("La película", tile, "ha sido seleccionada correctamente.")
+                    self.selection = True
+                    self.tile = tile
+                    break
+                    
     def do_logout(self,arg):
         'Cerrar sesión en el usuario'
         print("Cerrando sesión de", self.user_name)
