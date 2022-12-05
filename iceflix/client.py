@@ -41,7 +41,7 @@ def search_by_name(catalog):
         print("No se han encontrado resultados en la búsqueda.")
     else:
         show_sequence(lista)
-    return 0        
+    return lista        
 
 class ClientShell(cmd.Cmd):
         intro = 'Bienvenido al IceFlix menu. Escribe "help" ó "?" para listar las opciones. \n'
@@ -157,7 +157,7 @@ class NormalUserShell(cmd.Cmd):
     def do_SearchByName(self,arg):
         'Búsqueda por nombre en los archivos del catálogo.'
         # ¿Se debería de comprobar el token al hacer búsqueda por nombre un usuario normal?
-        search_by_name(self.catalog)
+        self.lista = search_by_name(self.catalog)
         
     def do_SearchByTags(self,arg):
         'Búsqueda por tags en los archivos del catálogo.'
@@ -184,16 +184,16 @@ class NormalUserShell(cmd.Cmd):
         if(len(lista) == 0):
             print("No se han encontrado resultados para la búsqueda")
         else:
-            show_sequence(lista)
-    
+            self.lista = show_sequence(lista)
+            
     def do_selectionTile(self,arg):
         tile = input("Introduce la película que quieres selccionar:")
         self.selection = True
+        self.tile = tile
         
-    
     def do_logout(self,arg):
         'Cerrar sesión en el usuario'
-        print("Cerrando sesión de ", self.user_name)
+        print("Cerrando sesión de", self.user_name)
         return 1
     
     def __init__(self, main, user_name, hassed_pass, user_token):
@@ -204,6 +204,8 @@ class NormalUserShell(cmd.Cmd):
         self.user_name = user_name
         self.hassed_pas = hassed_pass
         self.user_token = user_token
+        self.lista = ""
+        self.tile = ""
         
 class Client(Ice.Application):
     # ----- Clase Cliente ----- #
