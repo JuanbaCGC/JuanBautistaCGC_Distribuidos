@@ -206,6 +206,7 @@ class NormalUserShell(cmd.Cmd):
             self.lista = busqueda_por_nombres(self.user_token,self.catalog)
             
     def do_selectionTile(self,arg):
+        'Seleccionar un título para gestionarlo'
         if(len(self.lista) == 0):
             print("No se ha realizado ninguna búsqueda anteriormente, debes realizar una antes de seleccionar una película.")
         else:
@@ -218,7 +219,13 @@ class NormalUserShell(cmd.Cmd):
                     self.selection = True
                     self.tile = tile
                     break
-                    
+    
+    def do_añadirTags(self,arg):
+        print("Añadir tag")
+        
+    def do_eliminarTags(self,arg):
+        print("Eliminar tag")
+       
     def do_logout(self,arg):
         'Cerrar sesión en el usuario'
         print("Cerrando sesión de", self.user_name)
