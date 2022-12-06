@@ -27,7 +27,6 @@ def mostrar_busqueda_anonima(lista):
     while pos < len(lista):
         print(str(pos+1) + "-"+ lista[pos])
         pos+=1
-    return 0
 
 def titulo_existe(nombre, lista, catalog, token_usuario):
     pos = 0
@@ -44,7 +43,8 @@ def tags_existen(lista_tags,id,token_usuario,catalog):
     pos = 0
     valido = False
     while pos < len(lista_tags):
-        if(lista_tags[pos] in tags_existentes):
+        if lista_tags[pos] in tags_existentes:
+            print(lista_tags[pos], " está en los tags")
             valido = True
         else:
             valido = False
@@ -56,20 +56,16 @@ def get_tags(media_id, token_usuario,catalog):
     print(media.info.tags)
     
 def busqueda_por_nombres(token_usuario,catalog):
-    name = input("Introduce el nombre para realizar la búsqueda:")
-    print("Elije una opción (introduce un número 1 o 2).")
-    print("1. Búsqueda por término exacto.")
-    print("2. Búsqueda títulos que incluyan la palabra a buscar.")
+    print("¿Desea realizar una búsqueda exacta de los tags? Introduzca S/N ó s/n")
     correcto = False
+    opcion = ""
     while(correcto is False):
-        try:
-            opcion = int(input())
-        except ValueError:
-            print("Debes introducir un número.")
-        if opcion==1 or opcion==2:
+        opcion = input("Opción elegida:")
+        if opcion.lower()=="s" or opcion.lower()=="n":
             correcto = True
         else:
-            print("Introduce un número del 1 al 2.")
+            print("Introduce N/S")
+    name = input("Introduce la palabra a buscar:")
     lista = catalog.getTilesByName(name,opcion==1)  
     if(len(lista) == 0):
         print("No se han encontrado resultados en la búsqueda.")
@@ -77,7 +73,33 @@ def busqueda_por_nombres(token_usuario,catalog):
         mostrar_busqueda_anonima(lista)
     else:
         mostrar_busqueda(lista,token_usuario,catalog)
-    return lista        
+    return lista     
+
+def busqueda_por_tags(nombre_usuario,hassed_pass, token_usuario,authenticator,catalog):
+    print("¿Desea realizar una búsqueda exacta de los tags? Introduzca S/N ó s/n")
+    opcion = ""
+    correcto = False
+    while(correcto is False):
+        opcion = input("Opción elegida:")
+        if opcion.lower()=="s" or opcion.lower()=="n":
+            correcto = True
+        else:
+            print("Introduce N/S")
+    # Comprobamos si el token ha caducado o no, y si es así, lo actualizamos
+    if(authenticator.isAuthorized(token_usuario) is False):
+        token_usuario = authenticator.refreshAuthorization(nombre_usuario,hassed_pass)
+    
+    tag_list = input("Introduce los tags separados por comas: ")
+    tag_list = (tag_list.replace(" ","")).split(',')
+    # Comprobamos si el token ha caducado o no, y si es así, lo actualizamos
+    if(authenticator.isAuthorized(token_usuario) is False):
+        token_usuario = authenticator.refreshAuthorization(nombre_usuario,hassed_pass)
+    lista = catalog.getTilesByTags(tag_list,opcion.lower=="s",token_usuario)
+    if(len(lista) == 0):
+        print("No se han encontrado resultados para la búsqueda.")
+    else:
+        mostrar_busqueda(lista,token_usuario,catalog)
+    return lista
 
 class ClientShell(cmd.Cmd):
         intro = 'Bienvenido al IceFlix menu. Escribe "help" ó "?" para listar las opciones. \n'
@@ -190,18 +212,12 @@ class AdminShell(cmd.Cmd):
 class NormalUserShell(cmd.Cmd):
     intro = 'Inicio de sesión completado. \nEscribe "help" ó "?" para listar las opciones. \n'
     prompt: str = '(on-line)'
-    def do_SearchByName(self,arg):
-        'Búsqueda por nombre en los archivos del catálogo.'
-        # ¿Se debería de comprobar el token al hacer búsqueda por nombre un usuario normal?
-        self.lista = busqueda_por_nombres(self.user_token,self.catalog)
-        
-    def do_SearchByTags(self,arg):
-        'Búsqueda por tags en los archivos del catálogo.'
-        tag_list = input("Introduce los tags separados por comas: ")
-        tag_list = tag_list.split(sep=',')
+    
+    def do_realizarBusqueda(self,arg):
+        'Realizar una búsqueda por nombre o por tags'
         print("Elije una opción (introduce un número 1 o 2).")
-        print("1. Búsqueda de todos los tags")
-        print("2. Búsqueda que incluya algún tag")
+        print("1. Búsqueda por nombre")
+        print("2. Búsqueda por tags")
         correcto = False
         while(correcto is False):
             try:
@@ -212,15 +228,51 @@ class NormalUserShell(cmd.Cmd):
                     print("Introduce un número del 1 al 2")
             except ValueError:
                 print("Introduce un número")
-        # Comprobamos si el token ha caducado o no, y si es así, lo actualizamos
-        if(self.authenticator.isAuthorized(self.user_token) is False):
-            self.user_token = self.authenticator.refreshAuthorization(self.user_name,self.hassed_pas)
-        
-        lista = self.catalog.getTilesByTags(tag_list,opcion==1,self.user_token)
-        if(len(lista) == 0):
-            print("No se han encontrado resultados para la búsqueda")
-        else:
+        # Búsqueda por nombre
+        if(opcion==1):
+            # Comprobamos si el token ha caducado o no, y si es así, lo actualizamos
+            if(self.authenticator.isAuthorized(self.user_token) is False):
+                self.user_token = self.authenticator.refreshAuthorization(self.user_name,self.hassed_pass)
             self.lista = busqueda_por_nombres(self.user_token,self.catalog)
+        # Búsqueda por tag
+        else:
+            self.lista = busqueda_por_tags(self.user_name, self.hassed_pass,self.user_token,self.authenticator,self.catalog)
+            
+        print()
+            
+        
+        
+    # def do_SearchByName(self,arg):
+    #     'Búsqueda por nombre en los archivos del catálogo.'
+    #     # ¿Se debería de comprobar el token al hacer búsqueda por nombre un usuario normal?
+    #     self.lista = busqueda_por_nombres(self.user_token,self.catalog)
+        
+    def do_SearchByTags(self,arg):
+        'Búsqueda por tags en los archivos del catálogo.'
+        # tag_list = input("Introduce los tags separados por comas: ")
+        # tag_list = tag_list.split(sep=',')
+        # print("Elije una opción (introduce un número 1 o 2).")
+        # print("1. Búsqueda de todos los tags")
+        # print("2. Búsqueda que incluya algún tag")
+        # correcto = False
+        # while(correcto is False):
+        #     try:
+        #         opcion = int(input("Eleccion:"))
+        #         if opcion==1 or opcion==2:
+        #             correcto = True
+        #         else:
+        #             print("Introduce un número del 1 al 2")
+        #     except ValueError:
+        #         print("Introduce un número")
+        # # Comprobamos si el token ha caducado o no, y si es así, lo actualizamos
+        # if(self.authenticator.isAuthorized(self.user_token) is False):
+        #     self.user_token = self.authenticator.refreshAuthorization(self.user_name,self.hassed_pas)
+        
+        # lista = self.catalog.getTilesByTags(tag_list,opcion==1,self.user_token)
+        # if(len(lista) == 0):
+        #     print("No se han encontrado resultados para la búsqueda")
+        # else:
+        #     self.lista = busqueda_por_nombres(self.user_token,self.catalog)
             
     def do_selectionTile(self,arg):
         'Seleccionar un título para gestionarlo'
@@ -290,7 +342,7 @@ class NormalUserShell(cmd.Cmd):
         self.authenticator = main.getAuthenticator()
         self.catalog = main.getCatalog()
         self.user_name = user_name
-        self.hassed_pas = hassed_pass
+        self.hassed_pass = hassed_pass
         self.user_token = user_token
         self.lista = ""
         self.tile = ""
