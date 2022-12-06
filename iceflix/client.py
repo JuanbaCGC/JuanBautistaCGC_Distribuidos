@@ -21,7 +21,7 @@ def mostrar_busqueda(lista, token_usuario, catalog):
         print(pos, "->", media.info.name,".Tags:", media.info.tags)
     return 0
     
-def mostrar_busqueda_anonima(lista,catalog):
+def mostrar_busqueda_anonima(lista):
     pos = 0
     print("Resultado de búsqueda:")
     while pos < len(lista):
@@ -29,7 +29,7 @@ def mostrar_busqueda_anonima(lista,catalog):
         pos+=1
     return 0
 
-def existe(nombre, lista, catalog, token_usuario):
+def titulo_existe(nombre, lista, catalog, token_usuario):
     pos = 0
     while pos < len(lista):
         media = catalog.getTile(lista[pos],token_usuario)
@@ -38,6 +38,23 @@ def existe(nombre, lista, catalog, token_usuario):
             return True
     return False
 
+def tags_existen(lista_tags,id,token_usuario,catalog):
+    media = catalog.getTile(id,token_usuario)
+    tags_existentes = media.info.tags
+    pos = 0
+    valido = False
+    while pos < len(lista_tags):
+        if(lista_tags[pos] in tags_existentes):
+            valido = True
+        else:
+            valido = False
+            return valido
+    return valido
+
+def get_tags(media_id, token_usuario,catalog):
+    media = catalog.getTile(media_id,token_usuario)
+    print(media.info.tags)
+    
 def busqueda_por_nombres(token_usuario,catalog):
     name = input("Introduce el nombre para realizar la búsqueda:")
     print("Elije una opción (introduce un número 1 o 2).")
@@ -57,7 +74,7 @@ def busqueda_por_nombres(token_usuario,catalog):
     if(len(lista) == 0):
         print("No se han encontrado resultados en la búsqueda.")
     elif token_usuario == "":
-        mostrar_busqueda_anonima(lista,catalog)
+        mostrar_busqueda_anonima(lista)
     else:
         mostrar_busqueda(lista,token_usuario,catalog)
     return lista        
@@ -212,19 +229,55 @@ class NormalUserShell(cmd.Cmd):
         else:
             while(True):
                 tile = input("Introduce la película que quieres selecionar:")
-                if existe(tile,self.lista,self.catalog, self.user_token) is False:
-                    print("No hay ninguna película buscada con ese nombre.")
+                if titulo_existe(tile,self.lista,self.catalog, self.user_token) is False:
+                    print("No hay ninguna película buscada anteriormente con ese nombre.")
                 else:
                     print("La película", tile, "ha sido seleccionada correctamente.")
                     self.selection = True
                     self.tile = tile
                     break
     
-    def do_añadirTags(self,arg):
-        print("Añadir tag")
+    def do_addTags(self,arg):
+        if(self.tile == ""):
+            print("Para añadir algún tag tienes que haber seleccionado antes algún título")
+            return 0
+        print("Escribe los tags que quieres añadir a ", self.tile, " separados por comas:",end=" ")
+        tags = input()
+        tags_list = (tags.replace(" ","")).split(',')
+        if(self.authenticator.isAuthorized(self.user_token) is False):
+            self.user_token = self.authenticator.refreshAuthorization(self.user_name,self.hassed_pas)
+        mediaId = self.catalog.getTilesByName(self.tile,self.user_token)
+        self.catalog.addTags(mediaId[0],tags_list, self.user_token)
         
     def do_eliminarTags(self,arg):
-        print("Eliminar tag")
+        if(self.tile == ""):
+            print("Para añadir algún tag tienes que haber seleccionado antes algún título")
+            return 0
+        if(self.authenticator.isAuthorized(self.user_token) is False):
+            self.user_token = self.authenticator.refreshAuthorization(self.user_name,self.hassed_pas)
+        media_id = self.catalog.getTilesByName(self.tile,self.user_token)
+        valido = False
+        while(valido is False):
+            print("Escribe los tags que quieres eliminar a ", self.tile, " separados por comas:",end=" ")
+            tags = input()
+            tags_list = (tags.replace(" ","")).split(',')
+            valido = tags_existen(tags_list,media_id[0],self.user_token,self.catalog)
+            if tags == "":
+                print("\nNo se ha añadido ningún tag.")
+                break
+            elif valido is False:
+                print("El título ", self.tile, " no tiene los tags que has introducido para eliminarlos.")
+                # Actualizamos el token si es necesario
+                if(self.authenticator.isAuthorized(self.user_token) is False):
+                    self.user_token = self.authenticator.refreshAuthorization(self.user_name,self.hassed_pas)
+                print(self.tile, "tiene los siguientes tags --> ", get_tags(media_id[0],self.user_token,self.catalog))
+                print("Introduce los tags a eliminar de nuevo:")
+                
+        if valido is True:
+            if(self.authenticator.isAuthorized(self.user_token) is False):
+                self.user_token = self.authenticator.refreshAuthorization(self.user_name,self.hassed_pas)
+        
+                self.catalog.removeTags(media_id[0],tags_list, self.user_token)
        
     def do_logout(self,arg):
         'Cerrar sesión en el usuario'
