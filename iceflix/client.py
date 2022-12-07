@@ -30,7 +30,7 @@ def mostrar_busqueda(lista, token_usuario, catalog):
     while pos < len(lista):
         media = catalog.getTile(lista[pos],token_usuario)
         pos +=1
-        print(pos, "->", media.info.name,".Tags:", media.info.tags)
+        print(f"{bcolors.OKBLUE}",pos, "->", media.info.name,".Tags:", media.info.tags,f"{bcolors.ENDC}")
     return 0
     
 def mostrar_busqueda_anonima(lista):
@@ -38,7 +38,7 @@ def mostrar_busqueda_anonima(lista):
     print("Resultado de búsqueda:")
     
     while pos < len(lista):
-        print(str(pos+1) + "-"+ lista[pos])
+        print(f"{bcolors.OKBLUE}",str(pos+1) + "-"+ lista[pos],f"{bcolors.ENDC}")
         pos+=1
 
 def titulo_existe(titulo, lista, catalog, token_usuario):
@@ -116,6 +116,7 @@ def añadir_tags(titulo, token_usuario,nombre_usuario, hassed_pass,authenticator
     tags_list = (tags.replace(" ","")).split(',')
     comprobar_token(nombre_usuario,hassed_pass,token_usuario,authenticator)
     mediaId = catalog.getTilesByName(titulo,token_usuario)
+    comprobar_token(nombre_usuario,hassed_pass,token_usuario,authenticator)
     catalog.addTags(mediaId[0],tags_list, token_usuario)
     
 def comprobar_token(nombre_usuario, hassed_pass, token_usuario, authenticator):
@@ -125,17 +126,28 @@ def comprobar_token(nombre_usuario, hassed_pass, token_usuario, authenticator):
 def obtener_seleccion_usuario(lista,token_usuario,catalog):
     if (len(lista) != 0):
         while(True):
-            titulo = input("Introduce la película que quieres seleccionar:")
+            titulo = input("Introduce el título que quieres seleccionar:")
             if titulo_existe(titulo,lista,catalog,token_usuario) is False:
-                print("No hay ninguna película buscada anteriormente con ese nombre.")
+                print("No hay ningun archivo buscado anteriormente con ese nombre.")
             else:
                 break
     else:
         titulo = ""
     return titulo
-            
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+           
 class ClientShell(cmd.Cmd):
-        intro = 'Bienvenido al IceFlix menu. Escribe "help" ó "?" para listar las opciones. \n'
+        intro = 'Bienvenido al IceFlix menu. Escribe "help" ó "?" para listar las opciones.'
         prompt: str = '(Off-line)'
         # ----- Opciones del menú del cliente ----- #
         def do_login(self,arg):
@@ -152,15 +164,15 @@ class ClientShell(cmd.Cmd):
                 try:
                     user_token = self.authenticator.refreshAuthorization(user_name, hassed_pash)
                 except IceFlix.Unauthorized:
-                    print("El usuario o contraseña son incorrectos.")
+                    print(f"{bcolors.FAIL}El usuario o contraseña son incorrectos.{bcolors.ENDC} \n")
                 else:
-                    print("Inicio de sesión completado.")
+                    print(f"{bcolors.OKCYAN}Inicio de sesión completado.{bcolors.ENDC}")
                     t = Thread(target=NormalUserShell(self.main, user_name, hassed_pash, user_token).cmdloop())
                     t.start()
                     t.join()
             # Login para administrador
             else:
-                token = input("Introduce el token administrador:")
+                token = getpass.getpass("Introduce el token administrativo: ")
                 #is_admin = self.authenticator.isAdmin(token)
                 is_admin = True
                 if (is_admin):
@@ -196,9 +208,9 @@ class AdminShell(cmd.Cmd):
         try:
             self.authenticator.addUser(user_name, hassed_pash, self.admin_token)
         except IceFlix.Unauthorized:
-            print("No se le ha permitido realizar esta acción.")
+            print(f"{bcolors.FAIL}No se le ha permitido realizar esta acción.")
         except IceFlix.TemporaryUnavailable:
-            print("No puedes realizar esta acción.")
+            print(f"{bcolors.FAIL}No puedes realizar esta acción.")
         
     def do_borrarUsuario(self,arg):
         'Eliminar un usuario de la base de datos del programa.'
@@ -206,9 +218,9 @@ class AdminShell(cmd.Cmd):
         try:
             self.authenticator.removeUser(user_name,self.admin_token)
         except IceFlix.TemporaryUnavailable:
-            print("No se le ha permitido realizar esta acción.")
+            print(f"{bcolors.FAIL}No se le ha permitido realizar esta acción.")
         except IceFlix.Unauthorized:
-            print("No puedes realizar esta acción.")
+            print(f"{bcolors.FAIL}No puedes realizar esta acción.")
             
     def do_renombrarArchivo(self,arg):
         'Renombrar un fichero del catálogo.'
@@ -268,7 +280,7 @@ class NormalUserShell(cmd.Cmd):
         self.titulo = obtener_seleccion_usuario(self.lista,self.user_token,self.catalog)
         media_id = self.catalog.getTilesByName(self.titulo,True)
         tags = get_tags(media_id[0],self.user_token,self.catalog)
-        print("\nEl título seleccionado ha sido", self.titulo, "con los tags -->", tags)
+        print("El título seleccionado ha sido", f"{bcolors.BOLD}",self.titulo, f"{bcolors.ENDC}con los tags -->", tags,"\n")
         print("¿Que acción quieres realizar? Introduce 1 ó 2:")
         print("1. Añadir tags")
         print("2. Eliminar tags")
@@ -279,7 +291,7 @@ class NormalUserShell(cmd.Cmd):
         # Eliminar tags
         else:
             if(len(tags) == 0):
-                print("No se pueden eliminar tags de su selección ya que no tiene ningún tag.\nVolviendo al menú...\n")
+                print(f"No se pueden eliminar tags de su selección ya que no tiene ningún tag.\nVolviendo al menú...\n")
                 return 0
             existen = False
             while(existen is False):
