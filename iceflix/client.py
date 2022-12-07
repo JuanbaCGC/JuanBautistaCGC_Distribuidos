@@ -10,7 +10,7 @@ import Ice
 from threading import Thread
 #Ice.loadSlice('iceflix.ice')
 import IceFlix
-    
+
 def get_opcion():
     while(True):
         try:
@@ -98,11 +98,7 @@ def busqueda_por_tags(nombre_usuario,hassed_pass, token_usuario,authenticator,ca
         if opcion.lower()=="s" or opcion.lower()=="n":
             correcto = True
         else:
-            print("Introduce N/S")
-    # Comprobamos si el token ha caducado o no, y si es así, lo actualizamos
-    comprobar_token(nombre_usuario,token_usuario,authenticator)
-
-    
+            print("Introduce S/N ó s/n")
     tag_list = input("Introduce los tags separados por comas: ")
     tag_list = (tag_list.replace(" ","")).split(',')
     # Comprobamos si el token ha caducado o no, y si es así, lo actualizamos
@@ -118,8 +114,7 @@ def añadir_tags(titulo, token_usuario,nombre_usuario, hassed_pass,authenticator
     print("Escribe los tags que quieres añadir a ", titulo, " separados por comas:",end=" ")
     tags = input()
     tags_list = (tags.replace(" ","")).split(',')
-    if(authenticator.isAuthorized(token_usuario) is False):
-        token_usuario = authenticator.refreshAuthorization(nombre_usuario,hassed_pass)
+    comprobar_token(nombre_usuario,hassed_pass,token_usuario,authenticator)
     mediaId = catalog.getTilesByName(titulo,token_usuario)
     catalog.addTags(mediaId[0],tags_list, token_usuario)
     
@@ -159,6 +154,7 @@ class ClientShell(cmd.Cmd):
                 except IceFlix.Unauthorized:
                     print("El usuario o contraseña son incorrectos.")
                 else:
+                    print("Inicio de sesión completado.")
                     t = Thread(target=NormalUserShell(self.main, user_name, hassed_pash, user_token).cmdloop())
                     t.start()
                     t.join()
@@ -214,25 +210,23 @@ class AdminShell(cmd.Cmd):
         except IceFlix.Unauthorized:
             print("No puedes realizar esta acción.")
             
-    def do_renameFile(self,arg):
+    def do_renombrarArchivo(self,arg):
         'Renombrar un fichero del catálogo.'
-        media = input("Introduce el nombre del archivo del catálogo que quieres editar: ")
-        nombre_nuevo = input("Introduce el nuevo nombre del archivo:")
-        try:
-            self.catalog.getTile(media,self.admin_token)
-        except IceFlix.WrongMediaId:
-            print("No se ha encontrado ningún archivo en el catálogo con el id ", media,".")
-        except:
-            print("Error al obtener el archivo del catálogo.")
-        
-    def do_deleteFile(self,arg):
-        'Eliminar un fichero del catálogo.'
-        id = input("Introduce el id del archivo del catálogo a eliminar:")
-        lista = self.catalog.getTilesByName(id,True)
+        nombre = input("Introduce el nombre del archivo del catálogo que quieres editar:")
+        lista = self.catalog.getTilesByName(nombre,True)
         if(len(lista) == 0):
-            print("No existe ningún archivo con el id indicado")
+            print("No se ha encontrado ningún archivo con este nombre.")
         else:
-            self.catalog.removeMedia(id,self.file_service)
+            nombre_nuevo = input("Introduce el nuevo nombre del archivo:")
+            self.catalog.renameTile(lista[0],nombre_nuevo,self.admin_token)
+    def do_eliminarArchivo(self,arg):
+        'Eliminar un fichero del catálogo.'
+        nombre = input("Introduce el nombre exacto del fichero a eliminar:")
+        lista = self.catalog.getTilesByName(nombre,True)
+        if(len(lista) == 0):
+            print("No existe ningún archivo con el nombre indicado.")
+        else:
+            self.catalog.removeMedia(lista[0],self.file_service)
             
     def do_downloadFile(self,arg):
         'Descargar un fichero del catálogo.'
@@ -253,7 +247,7 @@ class AdminShell(cmd.Cmd):
         self.admin_token = admin_token
 
 class NormalUserShell(cmd.Cmd):
-    intro = 'Inicio de sesión completado. \nEscribe "help" ó "?" para listar las opciones. \n'
+    intro = '\nEscribe "help" ó "?" para listar las opciones.'
     prompt: str = '(on-line)'
     
     def do_realizarBusqueda(self,arg):
@@ -269,11 +263,12 @@ class NormalUserShell(cmd.Cmd):
         # Búsqueda por tag
         else:
             self.lista = busqueda_por_tags(self.user_name, self.hassed_pass,self.user_token,self.authenticator,self.catalog) 
-            
+        if(len(self.lista) == 0):
+               return 0
         self.titulo = obtener_seleccion_usuario(self.lista,self.user_token,self.catalog)
         media_id = self.catalog.getTilesByName(self.titulo,True)
         tags = get_tags(media_id[0],self.user_token,self.catalog)
-        print("El título seleccionado ha sido", self.titulo, "con los tags -->", tags)
+        print("\nEl título seleccionado ha sido", self.titulo, "con los tags -->", tags)
         print("¿Que acción quieres realizar? Introduce 1 ó 2:")
         print("1. Añadir tags")
         print("2. Eliminar tags")
@@ -284,13 +279,14 @@ class NormalUserShell(cmd.Cmd):
         # Eliminar tags
         else:
             if(len(tags) == 0):
-                print("No se pueden eliminar tags de su selección ya que no tiene ningún tag.\nVolviendo al menú")
+                print("No se pueden eliminar tags de su selección ya que no tiene ningún tag.\nVolviendo al menú...\n")
                 return 0
             existen = False
             while(existen is False):
                 print("Escribe los tags que quieres eliminar a ", self.titulo, " separados por comas:",end=" ")
                 tags = input()
                 tags_list = (tags.replace(" ","")).split(',')
+                comprobar_token(self.user_name,self.hassed_pass,self.user_token,self.authenticator)
                 existen = tags_existen(tags_list,media_id[0],self.user_token,self.catalog)
                 if tags == "":
                     print("\nNo se ha añadido ningún tag.")
