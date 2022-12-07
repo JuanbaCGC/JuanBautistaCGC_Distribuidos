@@ -11,7 +11,19 @@ from threading import Thread
 #Ice.loadSlice('iceflix.ice')
 import IceFlix
     
-    # Método para obtener los tags de los identificadores que devuelve una búsqueda    
+def get_opcion():
+    while(True):
+        try:
+            opcion = int(input("Eleccion:"))
+            if opcion==1 or opcion==2:
+                break
+            else:
+                    print("Introduce un número del 1 al 2")
+        except ValueError:
+                print("Introduce un número")    
+    return opcion
+
+# Método para obtener los tags de los identificadores que devuelve una búsqueda    
 def mostrar_busqueda(lista, token_usuario, catalog):
     pos = 0
     print("Resultado de búsqueda:")
@@ -24,16 +36,17 @@ def mostrar_busqueda(lista, token_usuario, catalog):
 def mostrar_busqueda_anonima(lista):
     pos = 0
     print("Resultado de búsqueda:")
+    
     while pos < len(lista):
         print(str(pos+1) + "-"+ lista[pos])
         pos+=1
 
-def titulo_existe(nombre, lista, catalog, token_usuario):
+def titulo_existe(titulo, lista, catalog, token_usuario):
     pos = 0
     while pos < len(lista):
         media = catalog.getTile(lista[pos],token_usuario)
         pos +=1
-        if (media.info.name == nombre):
+        if (media.info.name == titulo):
             return True
     return False
 
@@ -53,10 +66,11 @@ def tags_existen(lista_tags,id,token_usuario,catalog):
 
 def get_tags(media_id, token_usuario,catalog):
     media = catalog.getTile(media_id,token_usuario)
-    print(media.info.tags)
+    tags = media.info.tags
+    return tags
     
 def busqueda_por_nombres(token_usuario,catalog):
-    print("¿Desea realizar una búsqueda exacta de los tags? Introduzca S/N ó s/n")
+    print("¿Desea realizar una búsqueda exacta del nombre? Introduzca S/N ó s/n")
     correcto = False
     opcion = ""
     while(correcto is False):
@@ -86,14 +100,13 @@ def busqueda_por_tags(nombre_usuario,hassed_pass, token_usuario,authenticator,ca
         else:
             print("Introduce N/S")
     # Comprobamos si el token ha caducado o no, y si es así, lo actualizamos
-    if(authenticator.isAuthorized(token_usuario) is False):
-        token_usuario = authenticator.refreshAuthorization(nombre_usuario,hassed_pass)
+    comprobar_token(nombre_usuario,token_usuario,authenticator)
+
     
     tag_list = input("Introduce los tags separados por comas: ")
     tag_list = (tag_list.replace(" ","")).split(',')
     # Comprobamos si el token ha caducado o no, y si es así, lo actualizamos
-    if(authenticator.isAuthorized(token_usuario) is False):
-        token_usuario = authenticator.refreshAuthorization(nombre_usuario,hassed_pass)
+    comprobar_token(nombre_usuario,token_usuario,authenticator)
     lista = catalog.getTilesByTags(tag_list,opcion.lower=="s",token_usuario)
     if(len(lista) == 0):
         print("No se han encontrado resultados para la búsqueda.")
@@ -101,40 +114,70 @@ def busqueda_por_tags(nombre_usuario,hassed_pass, token_usuario,authenticator,ca
         mostrar_busqueda(lista,token_usuario,catalog)
     return lista
 
+def añadir_tags(titulo, token_usuario,nombre_usuario, hassed_pass,authenticator,catalog):
+    print("Escribe los tags que quieres añadir a ", titulo, " separados por comas:",end=" ")
+    tags = input()
+    tags_list = (tags.replace(" ","")).split(',')
+    if(authenticator.isAuthorized(token_usuario) is False):
+        token_usuario = authenticator.refreshAuthorization(nombre_usuario,hassed_pass)
+    mediaId = catalog.getTilesByName(titulo,token_usuario)
+    catalog.addTags(mediaId[0],tags_list, token_usuario)
+    
+def comprobar_token(nombre_usuario, hassed_pass, token_usuario, authenticator):
+    if(authenticator.isAuthorized(token_usuario) is False):
+                    token_usuario = authenticator.refreshAuthorization(nombre_usuario,hassed_pass)
+    
+def obtener_seleccion_usuario(lista,token_usuario,catalog):
+    if (len(lista) != 0):
+        while(True):
+            titulo = input("Introduce la película que quieres seleccionar:")
+            if titulo_existe(titulo,lista,catalog,token_usuario) is False:
+                print("No hay ninguna película buscada anteriormente con ese nombre.")
+            else:
+                break
+    else:
+        titulo = ""
+    return titulo
+            
 class ClientShell(cmd.Cmd):
         intro = 'Bienvenido al IceFlix menu. Escribe "help" ó "?" para listar las opciones. \n'
         prompt: str = '(Off-line)'
         # ----- Opciones del menú del cliente ----- #
-        def do_adminLogin(self, arg):
-            'Inicia sesión como administrador para gestionar la aplicación distribuida'
-            token = input("Introduce el token:")
-            #is_admin = self.authenticator.isAdmin(token)
-            is_admin = True
-            if (is_admin):
-                print("Es admin... \n")
-                t = Thread(target=AdminShell(self.main, token).cmdloop())
-                t.start()
-                t.join()
-
-        def do_userLogin(self,arg):
-            'Inicia sesión como usuario para hacer búsquedas por nombres y por tags'
-            user_name = input("Introduce tu nombre de usuario:")
-            password = getpass.getpass("Contraseña: ")
-            hassed_pash = hashlib.sha256(password.encode()).hexdigest()
-            try:
-                user_token = self.authenticator.refreshAuthorization(user_name, hassed_pash)
-            except IceFlix.Unauthorized:
-                print("El usuario o contraseña son incorrectos.")
+        def do_login(self,arg):
+            'Iniciar sesión como usuario o administrador'
+            print("¿Quieres iniciar sesión como usuario o administrador? Introduce 1 ó 2")
+            print("1. Usuario\n2. Administrador")
+            opcion = get_opcion()
+                    
+            # Login para usuario
+            if opcion == 1:
+                user_name = input("Introduce tu nombre de usuario:")
+                password = getpass.getpass("Contraseña: ")
+                hassed_pash = hashlib.sha256(password.encode()).hexdigest()
+                try:
+                    user_token = self.authenticator.refreshAuthorization(user_name, hassed_pash)
+                except IceFlix.Unauthorized:
+                    print("El usuario o contraseña son incorrectos.")
+                else:
+                    t = Thread(target=NormalUserShell(self.main, user_name, hassed_pash, user_token).cmdloop())
+                    t.start()
+                    t.join()
+            # Login para administrador
             else:
-                t = Thread(target=NormalUserShell(self.main, user_name, hassed_pash, user_token).cmdloop())
-                t.start()
-                t.join()
-
-        def do_searchByName(self,arg):
+                token = input("Introduce el token administrador:")
+                #is_admin = self.authenticator.isAdmin(token)
+                is_admin = True
+                if (is_admin):
+                    print("Es admin... \n")
+                    t = Thread(target=AdminShell(self.main, token).cmdloop())
+                    t.start()
+                    t.join()
+                
+        def do_busquedaPorNombre(self,arg):
             'Opción para realizar una búsqueda por el catálogo introduciendo un nombre a buscar'
             busqueda_por_nombres("",self.catalog)
             
-        def do_exit(self,arg):
+        def do_salir(self,arg):
             'Opción para salir de la aplicación del cliente.'
             print("Saliendo del cliente...")
             return 1
@@ -149,7 +192,7 @@ class AdminShell(cmd.Cmd):
     intro = 'Menu de administrador. Escribe "help" ó "?" para listar las opciones. \n'
     prompt: str = '(Admin on-line)'
     # ----- Opciones del menú del administrador ----- #
-    def do_addUser(self,arg):
+    def do_agregarUsuario(self,arg):
         'Añadir un usuario a la base de datos del programa.'
         user_name = input("Introduce el nombre del usuario a añadir:")
         password = getpass.getpass("Contraseña:")
@@ -157,17 +200,17 @@ class AdminShell(cmd.Cmd):
         try:
             self.authenticator.addUser(user_name, hassed_pash, self.admin_token)
         except IceFlix.Unauthorized:
-            print("No se ha añadido al usuario, token de administrador no válido.")
+            print("No se le ha permitido realizar esta acción.")
         except IceFlix.TemporaryUnavailable:
             print("No puedes realizar esta acción.")
         
-    def do_removeUser(self,arg):
+    def do_borrarUsuario(self,arg):
         'Eliminar un usuario de la base de datos del programa.'
         user_name = input("Introduce el nombre del usuario a eliminar:")
         try:
             self.authenticator.removeUser(user_name,self.admin_token)
         except IceFlix.TemporaryUnavailable:
-            print("El nombre del usuario introducido no existe.")
+            print("No se le ha permitido realizar esta acción.")
         except IceFlix.Unauthorized:
             print("No puedes realizar esta acción.")
             
@@ -206,7 +249,7 @@ class AdminShell(cmd.Cmd):
         self.selection = False
         self.authenticator = main.getAuthenticator()
         self.catalog = main.getCatalog()
-        self.file_service = main.getFileService()
+        #self.file_service = main.getFileService()
         self.admin_token = admin_token
 
 class NormalUserShell(cmd.Cmd):
@@ -218,118 +261,43 @@ class NormalUserShell(cmd.Cmd):
         print("Elije una opción (introduce un número 1 o 2).")
         print("1. Búsqueda por nombre")
         print("2. Búsqueda por tags")
-        correcto = False
-        while(correcto is False):
-            try:
-                opcion = int(input("Eleccion:"))
-                if opcion==1 or opcion==2:
-                    correcto = True
-                else:
-                    print("Introduce un número del 1 al 2")
-            except ValueError:
-                print("Introduce un número")
+        opcion = get_opcion()
         # Búsqueda por nombre
         if(opcion==1):
-            # Comprobamos si el token ha caducado o no, y si es así, lo actualizamos
-            if(self.authenticator.isAuthorized(self.user_token) is False):
-                self.user_token = self.authenticator.refreshAuthorization(self.user_name,self.hassed_pass)
+            comprobar_token(self.user_name,self.hassed_pass,self.user_token,self.authenticator)
             self.lista = busqueda_por_nombres(self.user_token,self.catalog)
         # Búsqueda por tag
         else:
-            self.lista = busqueda_por_tags(self.user_name, self.hassed_pass,self.user_token,self.authenticator,self.catalog)
+            self.lista = busqueda_por_tags(self.user_name, self.hassed_pass,self.user_token,self.authenticator,self.catalog) 
             
-        print()
-            
-        
-        
-    # def do_SearchByName(self,arg):
-    #     'Búsqueda por nombre en los archivos del catálogo.'
-    #     # ¿Se debería de comprobar el token al hacer búsqueda por nombre un usuario normal?
-    #     self.lista = busqueda_por_nombres(self.user_token,self.catalog)
-        
-    def do_SearchByTags(self,arg):
-        'Búsqueda por tags en los archivos del catálogo.'
-        # tag_list = input("Introduce los tags separados por comas: ")
-        # tag_list = tag_list.split(sep=',')
-        # print("Elije una opción (introduce un número 1 o 2).")
-        # print("1. Búsqueda de todos los tags")
-        # print("2. Búsqueda que incluya algún tag")
-        # correcto = False
-        # while(correcto is False):
-        #     try:
-        #         opcion = int(input("Eleccion:"))
-        #         if opcion==1 or opcion==2:
-        #             correcto = True
-        #         else:
-        #             print("Introduce un número del 1 al 2")
-        #     except ValueError:
-        #         print("Introduce un número")
-        # # Comprobamos si el token ha caducado o no, y si es así, lo actualizamos
-        # if(self.authenticator.isAuthorized(self.user_token) is False):
-        #     self.user_token = self.authenticator.refreshAuthorization(self.user_name,self.hassed_pas)
-        
-        # lista = self.catalog.getTilesByTags(tag_list,opcion==1,self.user_token)
-        # if(len(lista) == 0):
-        #     print("No se han encontrado resultados para la búsqueda")
-        # else:
-        #     self.lista = busqueda_por_nombres(self.user_token,self.catalog)
-            
-    def do_selectionTile(self,arg):
-        'Seleccionar un título para gestionarlo'
-        if(len(self.lista) == 0):
-            print("No se ha realizado ninguna búsqueda anteriormente, debes realizar una antes de seleccionar una película.")
+        self.titulo = obtener_seleccion_usuario(self.lista,self.user_token,self.catalog)
+        media_id = self.catalog.getTilesByName(self.titulo,True)
+        tags = get_tags(media_id[0],self.user_token,self.catalog)
+        print("El título seleccionado ha sido", self.titulo, "con los tags -->", tags)
+        print("¿Que acción quieres realizar? Introduce 1 ó 2:")
+        print("1. Añadir tags")
+        print("2. Eliminar tags")
+        opcion = get_opcion()
+        # Añadir tags
+        if(opcion == 1):
+           añadir_tags(self.titulo, self.user_token,self.user_name,self.hassed_pass,self.authenticator,self.catalog)
+        # Eliminar tags
         else:
-            while(True):
-                tile = input("Introduce la película que quieres selecionar:")
-                if titulo_existe(tile,self.lista,self.catalog, self.user_token) is False:
-                    print("No hay ninguna película buscada anteriormente con ese nombre.")
-                else:
-                    print("La película", tile, "ha sido seleccionada correctamente.")
-                    self.selection = True
-                    self.tile = tile
+            if(len(tags) == 0):
+                print("No se pueden eliminar tags de su selección ya que no tiene ningún tag.\nVolviendo al menú")
+                return 0
+            existen = False
+            while(existen is False):
+                print("Escribe los tags que quieres eliminar a ", self.titulo, " separados por comas:",end=" ")
+                tags = input()
+                tags_list = (tags.replace(" ","")).split(',')
+                existen = tags_existen(tags_list,media_id[0],self.user_token,self.catalog)
+                if tags == "":
+                    print("\nNo se ha añadido ningún tag.")
                     break
-    
-    def do_addTags(self,arg):
-        if(self.tile == ""):
-            print("Para añadir algún tag tienes que haber seleccionado antes algún título")
-            return 0
-        print("Escribe los tags que quieres añadir a ", self.tile, " separados por comas:",end=" ")
-        tags = input()
-        tags_list = (tags.replace(" ","")).split(',')
-        if(self.authenticator.isAuthorized(self.user_token) is False):
-            self.user_token = self.authenticator.refreshAuthorization(self.user_name,self.hassed_pas)
-        mediaId = self.catalog.getTilesByName(self.tile,self.user_token)
-        self.catalog.addTags(mediaId[0],tags_list, self.user_token)
-        
-    def do_eliminarTags(self,arg):
-        if(self.tile == ""):
-            print("Para añadir algún tag tienes que haber seleccionado antes algún título")
-            return 0
-        if(self.authenticator.isAuthorized(self.user_token) is False):
-            self.user_token = self.authenticator.refreshAuthorization(self.user_name,self.hassed_pas)
-        media_id = self.catalog.getTilesByName(self.tile,self.user_token)
-        valido = False
-        while(valido is False):
-            print("Escribe los tags que quieres eliminar a ", self.tile, " separados por comas:",end=" ")
-            tags = input()
-            tags_list = (tags.replace(" ","")).split(',')
-            valido = tags_existen(tags_list,media_id[0],self.user_token,self.catalog)
-            if tags == "":
-                print("\nNo se ha añadido ningún tag.")
-                break
-            elif valido is False:
-                print("El título ", self.tile, " no tiene los tags que has introducido para eliminarlos.")
-                # Actualizamos el token si es necesario
-                if(self.authenticator.isAuthorized(self.user_token) is False):
-                    self.user_token = self.authenticator.refreshAuthorization(self.user_name,self.hassed_pas)
-                print(self.tile, "tiene los siguientes tags --> ", get_tags(media_id[0],self.user_token,self.catalog))
-                print("Introduce los tags a eliminar de nuevo:")
-                
-        if valido is True:
-            if(self.authenticator.isAuthorized(self.user_token) is False):
-                self.user_token = self.authenticator.refreshAuthorization(self.user_name,self.hassed_pas)
-        
-                self.catalog.removeTags(media_id[0],tags_list, self.user_token)
+                elif existen is True:
+                    comprobar_token(self.user_name,self.hassed_pass,self.user_token,self.authenticator)
+                    self.catalog.removeTags(media_id[0],tags_list, self.user_token)
        
     def do_logout(self,arg):
         'Cerrar sesión en el usuario'
@@ -345,7 +313,7 @@ class NormalUserShell(cmd.Cmd):
         self.hassed_pass = hassed_pass
         self.user_token = user_token
         self.lista = ""
-        self.tile = ""
+        self.titulo = ""
         
 class Client(Ice.Application):
     # ----- Clase Cliente ----- #
