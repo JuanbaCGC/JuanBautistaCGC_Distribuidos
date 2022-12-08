@@ -10,6 +10,7 @@ import Ice
 from threading import Thread
 import IceFlix
 
+# Método para obtener la opción (1 ó 2) que introduzca el usuario
 def get_opcion():
     while(True):
         try:
@@ -33,14 +34,15 @@ def mostrar_busqueda(lista, token_usuario, catalog):
         print(f"{bcolors.OKBLUE}",pos, "->", media.info.name,".Tags:", media.info.tags,f"{bcolors.ENDC}")
     return 0
     
+# Método para recorrer una lista de un usuario no logeado
 def mostrar_busqueda_anonima(lista):
     pos = 0
     print("Resultado de búsqueda:")
-    
     while pos < len(lista):
         print(f"{bcolors.OKBLUE}",str(pos+1),"-",lista[pos],f"{bcolors.ENDC}")
         pos+=1
 
+# Método para saber si un título de un archivo está en una lista o no
 def titulo_existe(titulo, lista, catalog, token_usuario):
     pos = 0
     while pos < len(lista):
@@ -50,6 +52,7 @@ def titulo_existe(titulo, lista, catalog, token_usuario):
             return True
     return False
 
+# Método para saber si una serie de tags existen en los tags de un archivo
 def tags_existen(lista_tags,id,token_usuario,catalog):
     media = catalog.getTile(id,token_usuario)
     tags_existentes = media.info.tags
@@ -64,11 +67,13 @@ def tags_existen(lista_tags,id,token_usuario,catalog):
             return valido
     return valido
 
+# Método para obtener los tags de un archivo
 def get_tags(media_id, token_usuario,catalog):
     media = catalog.getTile(media_id,token_usuario)
     tags = media.info.tags
     return tags
     
+# Método para realizar una búsqueda en el catálogo por nombre
 def busqueda_por_nombres(token_usuario,catalog):
     print("¿Desea realizar una búsqueda exacta del nombre? Introduzca S/N ó s/n")
     correcto = False
@@ -89,6 +94,7 @@ def busqueda_por_nombres(token_usuario,catalog):
         mostrar_busqueda(lista,token_usuario,catalog)
     return lista     
 
+# Método para realizar una búsqueda por tags
 def busqueda_por_tags(nombre_usuario,hassed_pass, token_usuario,authenticator,catalog):
     print("¿Desea realizar una búsqueda exacta de los tags? Introduzca S/N ó s/n")
     opcion = ""
@@ -110,6 +116,7 @@ def busqueda_por_tags(nombre_usuario,hassed_pass, token_usuario,authenticator,ca
         mostrar_busqueda(lista,token_usuario,catalog)
     return lista
 
+# Método para añadir tags a un archivo seleccionado
 def añadir_tags(titulo, token_usuario,nombre_usuario, hassed_pass,authenticator,catalog):
     print("Escribe los tags que quieres añadir a ", titulo, " separados por comas:",end=" ")
     tags = input()
@@ -120,10 +127,12 @@ def añadir_tags(titulo, token_usuario,nombre_usuario, hassed_pass,authenticator
     catalog.addTags(mediaId[0],tags_list, token_usuario)
     print(f"{bcolors.OKCYAN}Se han añadido los tags indicados.\n{bcolors.ENDC}")
     
+# Método para actualizar el token de los usuarios cuando sea necesario
 def comprobar_token(nombre_usuario, hassed_pass, token_usuario, authenticator):
     if(authenticator.isAuthorized(token_usuario) is False):
         return authenticator.refreshAuthorization(nombre_usuario,hassed_pass)
-    
+
+# Método para obtener el título que selecciona un usuario
 def obtener_seleccion_usuario(lista,token_usuario,catalog):
     if (len(lista) != 0):
         while(True):
@@ -136,6 +145,7 @@ def obtener_seleccion_usuario(lista,token_usuario,catalog):
         titulo = ""
     return titulo
 
+# Clase para hacer prints de distintas formas
 class bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -146,7 +156,8 @@ class bcolors:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
-           
+        
+# Clase que implementa el menú de un usuario no logeado
 class ClientShell(cmd.Cmd):
         intro = 'Bienvenido al IceFlix menu. Escribe "help" ó "?" para listar las opciones.\nEscribe help <opcion> para obtener un resumen.'
         prompt: str = '(Off-line)'
@@ -211,7 +222,7 @@ class ClientShell(cmd.Cmd):
             except:
                 self.conexion = False
                 
-                
+# Clase que implementa el menú del administrador     
 class AdminShell(cmd.Cmd):
     intro = 'Menu de administrador. Escribe "help" ó "?" para listar las opciones.\nEscribe help <opcion> para obtener un resumen.'
     prompt: str = '(Admin on-line)'
@@ -278,6 +289,7 @@ class AdminShell(cmd.Cmd):
             self.conexion = False
         self.admin_token = admin_token
 
+# Clase que implementa el menú de un usuario que ha iniciado sesión
 class NormalUserShell(cmd.Cmd):
     intro = '\nEscribe "help" ó "?" para listar las opciones.\n Escribe help <opcion> para obtener un resumen.'
     prompt: str = '(on-line)'
@@ -367,6 +379,7 @@ class NormalUserShell(cmd.Cmd):
         self.titulo = ""
         self.id_titulo = ""
         
+# Clase en la que se intenta conectar con el proxy del main pasado por parámetros
 class Client(Ice.Application):
     # ----- Clase Cliente ----- #
     def run(self, argv):
