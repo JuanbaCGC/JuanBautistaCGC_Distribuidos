@@ -22,6 +22,7 @@ def get_opcion():
                 print("Introduce un número")    
     return opcion
 
+
 # Método para obtener los tags de los identificadores que devuelve una búsqueda    
 def mostrar_busqueda(lista, token_usuario, catalog):
     pos = 0
@@ -152,6 +153,11 @@ class ClientShell(cmd.Cmd):
         # ----- Opciones del menú del cliente ----- #
         def do_login(self,arg):
             'Iniciar sesión como usuario o administrador'
+            if(self.conexion == False):
+                print(f"{bcolors.FAIL}No se ha podido conectar con los servicios.{bcolors.ENDC}")
+                print(f"{bcolors.FAIL}Saliendo de IceFlix...")
+                return 1
+            
             print("¿Quieres iniciar sesión como usuario o administrador? Introduce 1 ó 2")
             print("1. Usuario\n2. Administrador")
             opcion = get_opcion()
@@ -183,19 +189,30 @@ class ClientShell(cmd.Cmd):
                 
         def do_busquedaPorNombre(self,arg):
             'Opción para realizar una búsqueda por el catálogo introduciendo un nombre a buscar'
+            if(self.conexion == False):
+                print(f"{bcolors.FAIL}No se ha podido conectar con los servicios.{bcolors.ENDC}")
+                print(f"{bcolors.FAIL}Saliendo de IceFlix...")
+                return 1
+            
             busqueda_por_nombres("",self.catalog)
             
         def do_salir(self,arg):
             'Opción para salir de la aplicación del cliente.'
-            print("Saliendo del cliente...")
+            print(f"{bcolors.FAIL}Saliendo de IceFlix...")
             return 1
         
         def __init__(self, main):
             super(ClientShell, self).__init__()
-            self.main = main
-            self.authenticator = main.getAuthenticator()
-            self.catalog = main.getCatalog()
-
+            try:
+                self.main = main
+                self.authenticator = main.getAuthenticator()
+                self.catalog = main.getCatalog()
+                self.file_service = main.getFileService()
+                self.conexion = True
+            except:
+                self.conexion = False
+                
+                
 class AdminShell(cmd.Cmd):
     intro = 'Menu de administrador. Escribe "help" ó "?" para listar las opciones. \n'
     prompt: str = '(Admin on-line)'
@@ -311,31 +328,27 @@ class NormalUserShell(cmd.Cmd):
                     print(f"{bcolors.OKCYAN}Se han eliminado los tags.\n{bcolors.ENDC}")
        
     def do_realizarDescarga(self,arg):
+        'Descargar un archivo una vez seleccionado un título anteriormente.'
         if(self.titulo == ""):
-            print(f"{bcolors.FAIL}No tienes ningún título seleccionado. Por favor, realiza una búsqueda y selecciona un título.\n{bcolors.ENDC}")
+            print(f"{bcolors.FAIL}No tienes ningún título seleccionado. Debes realizar una búsqueda y seleccionar un título.\n{bcolors.ENDC}")
         else:
             self.user_token = comprobar_token(self.user_name,self.hassed_pass,self.user_token,self.authenticator)
             fileHandler = self.fileService.openFile(self.id_titulo,self.user_token)
-            num_bytes = 1
-            resultado = None
-            while(num_bytes != 0):
+            bytes = 1
+            bytes_recibidos = bytearray()
+            while(bytes != 0):
                 try:
-                    num_bytes = fileHandler.receive(20,self.user_token)
-                    resultado += num_bytes
+                    bytes = fileHandler.receive(20)
+                    bytes_recibidos += bytes
                 except IceFlix.Unauthorized:
                     self.user_token = comprobar_token(self.user_name,self.hassed_pass,self.user_token,self.authenticator)
-                    
-            print(resultado)
+            fileHandler.close()
+            with open("archivo", "wb") as binary_file:
+                binary_file.write(bytes_recibidos)
             
-            
-            
-            
-                
-            
-    
     def do_logout(self,arg):
         'Cerrar sesión en el usuario'
-        print("Cerrando sesión de", self.user_name)
+        print("Cerrando sesión de", self.user_name,"\n")
         return 1
     
     def __init__(self, main, user_name, hassed_pass, user_token):
@@ -343,7 +356,7 @@ class NormalUserShell(cmd.Cmd):
         self.main = main
         self.authenticator = main.getAuthenticator()
         self.catalog = main.getCatalog()
-        self.fileService = main.getFileService()
+        #self.fileService = main.getFileService()
         self.user_name = user_name
         self.hassed_pass = hassed_pass
         self.user_token = user_token
@@ -376,7 +389,5 @@ class Client(Ice.Application):
             raise RuntimeError('Se han realizado todos los intentos de conexión. Error con el proxy')
         else:
             ClientShell(main).cmdloop()
-        
-        return -1
 
 sys.exit(Client().main(sys.argv))
