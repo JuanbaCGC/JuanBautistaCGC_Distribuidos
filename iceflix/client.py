@@ -247,6 +247,7 @@ class AdminShell(cmd.Cmd):
         else:
             nombre_nuevo = input("Introduce el nuevo nombre del archivo:")
             self.catalog.renameTile(lista[0],nombre_nuevo,self.admin_token)
+            
     def do_eliminarArchivo(self,arg):
         'Eliminar un fichero del catálogo.'
         nombre = input("Introduce el nombre exacto del fichero a eliminar:")
@@ -255,6 +256,10 @@ class AdminShell(cmd.Cmd):
             print("No existe ningún archivo con el nombre indicado.")
         else:
             self.catalog.removeMedia(lista[0],self.file_service)
+    
+    def do_subirArchivo(self,arg):
+        'Subir un archivo al catálogo.'
+
     
     def do_cerrarSesion(self,arg):
         'Cerrar sesión como administrador.'
@@ -292,6 +297,7 @@ class NormalUserShell(cmd.Cmd):
             self.lista = busqueda_por_tags(self.nombre_usuario, self.hassed_pass,self.token_usuario,self.authenticator,self.catalog) 
         if(len(self.lista) == 0):
                return 0
+        # Obtener título de la lista obtenida
         self.titulo = obtener_seleccion_usuario(self.lista,self.token_usuario,self.catalog)
         media_id = self.catalog.getTilesByName(self.titulo,True)
         self.id_titulo = media_id[0]
@@ -331,18 +337,18 @@ class NormalUserShell(cmd.Cmd):
         else:
             self.token_usuario = comprobar_token(self.nombre_usuario,self.hassed_pass,self.token_usuario,self.authenticator)
             fileHandler = self.fileService.openFile(self.id_titulo,self.token_usuario)
-            bytes = 1
-            bytes_recibidos = bytearray()
-            while(bytes != 0):
-                try:
-                    bytes = fileHandler.receive(20)
-                    bytes_recibidos += bytes
-                except IceFlix.Unauthorized:
-                    self.token_usuario = comprobar_token(self.nombre_usuario,self.hassed_pass,self.token_usuario,self.authenticator)
+            with open("archivo", "wb") as file_descriptor:
+                while(True):
+                    try:
+                        recibido = fileHandler.receive(20)
+                        if len(recibido) == 0:
+                            break
+                    except IceFlix.Unauthorized:
+                        self.token_usuario = comprobar_token(self.nombre_usuario,self.hassed_pass,self.token_usuario,self.authenticator)
+                    file_descriptor.write(recibido)
             fileHandler.close()
-            with open("archivo", "wb") as binary_file:
-                binary_file.write(bytes_recibidos)
             
+    
     def do_cerrarSesion(self,arg):
         'Cerrar sesión en el usuario'
         print("Cerrando sesión de", self.nombre_usuario,"\n")
