@@ -8,6 +8,7 @@ import getpass
 import time
 import Ice
 from threading import Thread
+import tkinter.filedialog
 import IceFlix
 
 # Método para obtener la opción (1 ó 2) que introduzca el usuario
@@ -156,7 +157,20 @@ class bcolors:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
+
+class Uploader(IceFlix.FileUploader):
+    def receive(self,size):
+        return self.f.read(size)
         
+    def close(self, user_token):
+        if self.authenticator.isAdmin(user_token):
+            self.f.close()
+        
+    def __init__(self,main):
+        self.authenticator = main.getAuthenticator()
+        self.filename = tkinter.filedialog.askopenfilename()
+        self.f = open(self.filename)
+
 # Clase que implementa el menú de un usuario no logeado
 class ClientShell(cmd.Cmd):
         intro = 'Bienvenido al IceFlix menu. Escribe "help" ó "?" para listar las opciones.\nEscribe help <opcion> para obtener un resumen.'
@@ -190,7 +204,8 @@ class ClientShell(cmd.Cmd):
             # Login para administrador
             else:
                 token = getpass.getpass("Introduce el token administrativo: ")
-                is_admin = self.authenticator.isAdmin(token)
+                #is_admin = self.authenticator.isAdmin(token)
+                is_admin = True
                 if (is_admin):
                     print(f"{bcolors.OKCYAN}Inicio de sesión para administrador completado \n{bcolors.ENDC}")
                     t = Thread(target=AdminShell(self.main, token).cmdloop())
@@ -270,7 +285,23 @@ class AdminShell(cmd.Cmd):
     
     def do_subirArchivo(self,arg):
         'Subir un archivo al catálogo.'
-
+        #file_uploader = FileUploader(self.main)
+        cliente = Client()
+        broker = cliente.communicator()
+        try:
+            servant = Uploader(self.main)
+        except:
+            print("No se ha podido crear el uploader.")
+        else:
+            adapter = broker.createObjectAdapterWithEndpoints("FileUploaderAdapter","default")
+            proxy = adapter.add(servant, broker.stringToIdentity("fileuploader"))
+        
+            self.file_service.uploadFile(proxy,self.admin_token)
+            sys.stdout.flush()
+        
+            adapter.activate()
+            cliente.shutdownOnInterrupt()
+            broker.waitForShutdown()
     
     def do_cerrarSesion(self,arg):
         'Cerrar sesión como administrador.'
