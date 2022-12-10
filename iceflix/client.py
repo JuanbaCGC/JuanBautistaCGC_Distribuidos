@@ -13,7 +13,7 @@ import IceFlix
 
 # Método para obtener la opción (1 ó 2) que introduzca el usuario
 def get_opcion():
-    while(True):
+    while True:
         try:
             opcion = int(input("Eleccion:"))
             if opcion==1 or opcion==2:
@@ -21,97 +21,85 @@ def get_opcion():
             else:
                     print("Introduce un número del 1 al 2")
         except ValueError:
-                print("Introduce un número")    
+                print("Introduce un número.")    
     return opcion
-
-
 # Método para obtener los tags de los identificadores que devuelve una búsqueda    
 def mostrar_busqueda(lista, token_usuario, catalog):
     pos = 0
-    print("Resultado de búsqueda:")
+    print("Hay",len(lista),"resultados:")
     while pos < len(lista):
-        media = catalog.getTile(lista[pos],token_usuario)
-        pos +=1
-        print(f"{bcolors.OKBLUE}",pos, "->", media.info.name,".Tags:", media.info.tags,f"{bcolors.ENDC}")
-    return 0
+        try:
+            media = catalog.getTile(lista[pos],token_usuario)
+        except:
+            print(f"{bcolors.FAIL}Error con el catalog.{bcolors.ENDC}")
+        else:
+            pos +=1
+            print(f"{bcolors.OKBLUE}",pos, "->", media.info.name,".Tags:", media.info.tags,f"{bcolors.ENDC}")
     
 # Método para recorrer una lista de un usuario no logeado
 def mostrar_busqueda_anonima(lista):
     pos = 0
-    print("Resultado de búsqueda:")
+    print("Hay",len(lista),"resultados:")
     while pos < len(lista):
         print(f"{bcolors.OKBLUE}",str(pos+1),"-",lista[pos],f"{bcolors.ENDC}")
         pos+=1
 
 # Método para saber si un título de un archivo está en una lista o no
 def titulo_existe(titulo, lista, catalog, token_usuario):
-    pos = 0
-    while pos < len(lista):
-        media = catalog.getTile(lista[pos],token_usuario)
-        pos +=1
-        if (media.info.name == titulo):
-            return True
-    return False
+    try:
+        existe = any(catalog.getTile(media_id, token_usuario).info.name == titulo for media_id in lista)
+    except:
+        print(f"{bcolors.FAIL}Error con el catalog.{bcolors.ENDC}")
+        return False
+    return existe
 
 # Método para saber si una serie de tags existen en los tags de un archivo
 def tags_existen(lista_tags,id,token_usuario,catalog):
-    media = catalog.getTile(id,token_usuario)
-    tags_existentes = media.info.tags
-    pos = 0
-    valido = False
-    while pos < len(lista_tags):
-        if lista_tags[pos] in tags_existentes:
-            print(lista_tags[pos], " está en los tags")
-            valido = True
-        else:
-            valido = False
-            return valido
-    return valido
+    try:
+        media = catalog.getTile(id,token_usuario)
+    except:
+        print(f"{bcolors.FAIL}Error con el catalog.{bcolors.ENDC}")
+        return False
+
+    return all(tag in media.info.tags for tag in lista_tags)
 
 # Método para obtener los tags de un archivo
 def get_tags(media_id, token_usuario,catalog):
-    media = catalog.getTile(media_id,token_usuario)
-    tags = media.info.tags
+    try:
+        media = catalog.getTile(media_id,token_usuario)
+    except:
+        print(f"{bcolors.FAIL}Error con el catalog.{bcolors.ENDC}")
+        tags = ""
+    else:
+        tags = media.info.tags
     return tags
     
-# Método para realizar una búsqueda en el catálogo por nombre
+# Método para realizar una búsqueda en el catálogo por nombre   
 def busqueda_por_nombres(token_usuario,catalog):
-    print("¿Desea realizar una búsqueda exacta del nombre? Introduzca S/N ó s/n")
-    correcto = False
-    opcion = ""
-    while(correcto is False):
-        opcion = input("Opción elegida:")
-        if opcion.lower()=="s" or opcion.lower()=="n":
-            correcto = True
-        else:
-            print("Introduce N/S")
-    name = input("Introduce la palabra a buscar:")
-    lista = catalog.getTilesByName(name,opcion==1)  
-    if(len(lista) == 0):
+    opcion = input("¿Desea realizar una búsqueda exacta del nombre? Introduzca SI/NO ó si/no: ").lower()
+    while opcion!= "si" and opcion != "no":
+        opcion = input("Opción no válida. ¿Desea realizar una búsqueda exacta del nombre? Introduzca SI/NO ó si/no: ")
+    name = input("Introduce la palabra a buscar: ")
+    lista = catalog.getTilesByName(name, opcion == "si")  
+    if len(lista) == 0:
         print("No se han encontrado resultados en la búsqueda.")
     elif token_usuario == "":
         mostrar_busqueda_anonima(lista)
     else:
         mostrar_busqueda(lista,token_usuario,catalog)
-    return lista     
+    return lista
 
 # Método para realizar una búsqueda por tags
 def busqueda_por_tags(nombre_usuario,hassed_pass, token_usuario,authenticator,catalog):
-    print("¿Desea realizar una búsqueda exacta de los tags? Introduzca S/N ó s/n")
-    opcion = ""
-    correcto = False
-    while(correcto is False):
-        opcion = input("Opción elegida:")
-        if opcion.lower()=="s" or opcion.lower()=="n":
-            correcto = True
-        else:
-            print("Introduce S/N ó s/n")
+    opcion = input("¿Desea realizar una búsqueda exacta de los tags? Introduzca SI/NO ó si/no: ").lower()
+    while opcion!="si" and opcion!="no":
+        opcion = input("Opción no válida. ¿Desea realizar una búsqueda exacta de los tags? Introduzca SI/NO ó si/no: ")
     tag_list = input("Introduce los tags separados por comas: ")
     tag_list = (tag_list.replace(" ","")).split(',')
     # Comprobamos si el token ha caducado o no, y si es así, lo actualizamos
     token_usuario = comprobar_token(nombre_usuario,hassed_pass,token_usuario,authenticator)
-    lista = catalog.getTilesByTags(tag_list,opcion.lower=="s",token_usuario)
-    if(len(lista) == 0):
+    lista = catalog.getTilesByTags(tag_list,opcion=="si",token_usuario)
+    if len(lista) == 0:
         print("No se han encontrado resultados para la búsqueda.")
     else:
         mostrar_busqueda(lista,token_usuario,catalog)
@@ -132,31 +120,25 @@ def añadir_tags(titulo, token_usuario,nombre_usuario, hassed_pass,authenticator
 def comprobar_token(nombre_usuario, hassed_pass, token_usuario, authenticator):
     if(authenticator.isAuthorized(token_usuario) is False):
         return authenticator.refreshAuthorization(nombre_usuario,hassed_pass)
+    return token_usuario
 
 # Método para obtener el título que selecciona un usuario
 def obtener_seleccion_usuario(lista,token_usuario,catalog):
-    if (len(lista) != 0):
-        while(True):
-            titulo = input("Introduce el título que quieres seleccionar:")
-            if titulo_existe(titulo,lista,catalog,token_usuario) is False:
-                print("No hay ningun archivo buscado anteriormente con ese nombre.")
-            else:
-                break
-    else:
-        titulo = ""
+    if not lista:
+        return ""
+    titulo = ""
+    while not titulo_existe(titulo, lista, catalog, token_usuario):
+        titulo = input("Introduce el título que quieres seleccionar: ")
     return titulo
 
 # Clase para hacer prints de distintas formas
 class bcolors:
-    HEADER = '\033[95m'
     OKBLUE = '\033[94m'
     OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
     WARNING = '\033[93m'
     FAIL = '\033[91m'
     ENDC = '\033[0m'
     BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
 
 class Uploader(IceFlix.FileUploader):
     def receive(self,size):
@@ -179,8 +161,7 @@ class ClientShell(cmd.Cmd):
         def do_login(self,arg):
             'Iniciar sesión como usuario o administrador'
             if(self.conexion == False):
-                print(f"{bcolors.FAIL}No se ha podido conectar con los servicios.{bcolors.ENDC}")
-                print(f"{bcolors.FAIL}Saliendo de IceFlix...")
+                print(f"{bcolors.FAIL}No se ha podido conectar con los servicios.Saliendo de IceFlix{bcolors.ENDC}")
                 return 1
             
             print("¿Quieres iniciar sesión como usuario o administrador? Introduce 1 ó 2")
@@ -208,26 +189,27 @@ class ClientShell(cmd.Cmd):
                 is_admin = True
                 if (is_admin):
                     print(f"{bcolors.OKCYAN}Inicio de sesión para administrador completado \n{bcolors.ENDC}")
-                    t = Thread(target=AdminShell(self.main, token).cmdloop())
+                    t = Thread(target=AdminShell(self.main, token,self.broker).cmdloop())
                     t.start()
                     t.join()
                 
         def do_busquedaPorNombre(self,arg):
             'Opción para realizar una búsqueda por el catálogo introduciendo un nombre a buscar'
             if(self.conexion == False):
-                print(f"{bcolors.FAIL}No se ha podido conectar con los servicios.{bcolors.ENDC}")
-                print(f"{bcolors.FAIL}Saliendo de IceFlix...")
+                print(f"{bcolors.FAIL}No se ha podido conectar con los servicios.Saliendo de IceFlix...{bcolors.ENDC}")
                 return 1
-            
-            busqueda_por_nombres("",self.catalog)
+            else:
+                busqueda_por_nombres("",self.catalog)
             
         def do_salir(self,arg):
             'Opción para salir de la aplicación del cliente.'
-            print(f"{bcolors.FAIL}Saliendo de IceFlix...")
+            self.broker.shutdown()
+            print(f"{bcolors.FAIL}Saliendo de IceFlix...{bcolors.ENDC}")
             return 1
         
-        def __init__(self, main):
+        def __init__(self, main,broker):
             super(ClientShell, self).__init__()
+            self.broker = broker
             try:
                 self.main = main
                 self.authenticator = main.getAuthenticator()
@@ -249,19 +231,20 @@ class AdminShell(cmd.Cmd):
         hassed_pash = hashlib.sha256(password.encode()).hexdigest()
         try:
             self.authenticator.addUser(nombre_usuario, hassed_pash, self.admin_token)
+            print(f"{bcolors.OKCYAN}Se ha creado al usuario ", nombre_usuario, f"{bcolors.ENDC}")
         except IceFlix.Unauthorized:
-            print(f"{bcolors.FAIL}No se le ha permitido realizar esta acción.")
+            print(f"{bcolors.FAIL}No se le ha permitido realizar esta acción.{bcolors.ENDC}")
         except IceFlix.TemporaryUnavailable:
-            print(f"{bcolors.FAIL}No se ha podido realizar esta acción.")
+            print(f"{bcolors.FAIL}No se ha podido realizar esta acción.{bcolors.ENDC}")
         
     def do_borrarUsuario(self,arg):
         'Eliminar un usuario de la base de datos del programa.'
         nombre_usuario = input("Introduce el nombre del usuario a eliminar:")
         try:
             self.authenticator.removeUser(nombre_usuario,self.admin_token)
-        except IceFlix.TemporaryUnavailable:
-            print(f"{bcolors.FAIL}No se le ha permitido realizar esta acción.")
         except IceFlix.Unauthorized:
+            print(f"{bcolors.FAIL}No se le ha permitido realizar esta acción.")
+        except IceFlix.TemporaryUnavailable:
             print(f"{bcolors.FAIL}No se ha podido realizar esta acción.")
             
     def do_renombrarArchivo(self,arg):
@@ -269,10 +252,14 @@ class AdminShell(cmd.Cmd):
         nombre = input("Introduce el nombre del archivo del catálogo que quieres editar:")
         lista = self.catalog.getTilesByName(nombre,True)
         if(len(lista) == 0):
-            print("No se ha encontrado ningún archivo con este nombre.")
+            print(f"{bcolors.WARNING}No se ha encontrado ningún archivo con este nombre.{bcolors.ENDC}")
         else:
             nombre_nuevo = input("Introduce el nuevo nombre del archivo:")
-            self.catalog.renameTile(lista[0],nombre_nuevo,self.admin_token)
+            try:
+                self.catalog.renameTile(lista[0],nombre_nuevo,self.admin_token)
+                print(f"{bcolors.OKCYAN}Se ha actualizado el nombre en el catálogo.{bcolors.ENDC}")
+            except:
+                print(f"{bcolors.FAIL}Error con el catalog.{bcolors.ENDC}")
             
     def do_eliminarArchivo(self,arg):
         'Eliminar un fichero del catálogo.'
@@ -285,31 +272,25 @@ class AdminShell(cmd.Cmd):
     
     def do_subirArchivo(self,arg):
         'Subir un archivo al catálogo.'
-        #file_uploader = FileUploader(self.main)
-        cliente = Client()
-        broker = cliente.communicator()
         try:
             servant = Uploader(self.main)
         except:
             print("No se ha podido crear el uploader.")
         else:
-            adapter = broker.createObjectAdapterWithEndpoints("FileUploaderAdapter","default")
-            proxy = adapter.add(servant, broker.stringToIdentity("fileuploader"))
-        
+            adapter = self.broker.createObjectAdapterWithEndpoints("FileUploaderAdapterPrx","default")
+            proxy = adapter.add(servant, self.broker.stringToIdentity("fileuploader"))
             self.file_service.uploadFile(proxy,self.admin_token)
-            sys.stdout.flush()
-        
+            sys.stdout.flush()        
             adapter.activate()
-            cliente.shutdownOnInterrupt()
-            broker.waitForShutdown()
     
     def do_cerrarSesion(self,arg):
         'Cerrar sesión como administrador.'
         print("Cerrando sesión del administrador...")
         return 1
         
-    def __init__(self, main, admin_token):
+    def __init__(self, main, admin_token,broker):
         super(AdminShell, self).__init__()
+        self.broker = broker
         self.main = main
         try:
             self.authenticator = main.getAuthenticator()
@@ -322,33 +303,30 @@ class AdminShell(cmd.Cmd):
 
 # Clase que implementa el menú de un usuario que ha iniciado sesión
 class NormalUserShell(cmd.Cmd):
-    intro = '\nEscribe "help" ó "?" para listar las opciones.\n Escribe help <opcion> para obtener un resumen.'
+    intro = '\nEscribe "help" ó "?" para listar las opciones.\nEscribe help <opcion> para obtener un resumen.'
     prompt: str = '(on-line)'
     
     def do_realizarBusqueda(self,arg):
         'Realizar una búsqueda de títulos por nombre o por tags.'
-        print("Elije una opción (introduce un número 1 o 2).")
-        print("1. Búsqueda por nombre")
-        print("2. Búsqueda por tags")
+        print("Elije una opción (introduce un número 1 o 2).\n1. Búsqueda por nombre\n2. Búsqueda por tags")
         opcion = get_opcion()
         # Búsqueda por nombre
         if(opcion==1):
             self.token_usuario = comprobar_token(self.nombre_usuario,self.hassed_pass,self.token_usuario,self.authenticator)
-            self.lista = busqueda_por_nombres(self.token_usuario,self.catalog)
+            lista = busqueda_por_nombres(self.token_usuario,self.catalog)
         # Búsqueda por tag
         else:
-            self.lista = busqueda_por_tags(self.nombre_usuario, self.hassed_pass,self.token_usuario,self.authenticator,self.catalog) 
-        if(len(self.lista) == 0):
+            lista = busqueda_por_tags(self.nombre_usuario, self.hassed_pass,self.token_usuario,self.authenticator,self.catalog) 
+        if(len(lista) == 0):
                return 0
         # Obtener título de la lista obtenida
-        self.titulo = obtener_seleccion_usuario(self.lista,self.token_usuario,self.catalog)
+        self.titulo = obtener_seleccion_usuario(lista,self.token_usuario,self.catalog)
         media_id = self.catalog.getTilesByName(self.titulo,True)
         self.id_titulo = media_id[0]
+        self.token_usuario = comprobar_token(self.nombre_usuario,self.hassed_pass,self.token_usuario,self.authenticator)
         tags = get_tags(media_id[0],self.token_usuario,self.catalog)
-        print("El título seleccionado ha sido", f"{bcolors.BOLD}",self.titulo, f"{bcolors.ENDC}con los tags -->", tags,"\n")
-        print("¿Que acción quieres realizar? Introduce 1 ó 2:")
-        print("1. Añadir tags")
-        print("2. Eliminar tags")
+        print("El título seleccionado ha sido",f"{bcolors.BOLD}",self.titulo, f"{bcolors.ENDC}con los tags -->", tags,"\n")
+        print("¿Que acción quieres realizar? Introduce 1 ó 2:\n1. Añadir tags\n2. Eliminar tags")
         opcion = get_opcion()
         # Añadir tags
         if(opcion == 1):
@@ -390,7 +368,6 @@ class NormalUserShell(cmd.Cmd):
                         self.token_usuario = comprobar_token(self.nombre_usuario,self.hassed_pass,self.token_usuario,self.authenticator)
                     file_descriptor.write(recibido)
             fileHandler.close()
-            
     
     def do_cerrarSesion(self,arg):
         'Cerrar sesión en el usuario'
@@ -406,7 +383,6 @@ class NormalUserShell(cmd.Cmd):
         self.nombre_usuario = nombre_usuario
         self.hassed_pass = hassed_pass
         self.token_usuario = token_usuario
-        self.lista = ""
         self.titulo = ""
         self.id_titulo = ""
         
@@ -435,6 +411,13 @@ class Client(Ice.Application):
         if not comprobacion:
             raise RuntimeError(f'{bcolors.FAIL}Se han realizado todos los intentos de conexión. Error con el proxy{bcolors.ENDC}')
         else:
-            ClientShell(main).cmdloop()
+            broker = self.communicator()
+            t = Thread(target=ClientShell(main,broker).cmdloop(), daemon=True)
+            t.start()
+            
+            sys.stdout.flush()
+            self.shutdownOnInterrupt()
+            broker.waitForShutdown()   
+        return 1
 
 sys.exit(Client().main(sys.argv))
