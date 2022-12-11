@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
+ARGC=("$#")
 
-iceflix --Ice.Config=configs/client.config
+iceflix --Ice.Config=configs/client.config "$1"
