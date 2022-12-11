@@ -18,14 +18,13 @@ Y acto seguido se instalarán las dependencias necesarias.
 ## Ejecución
 Para la ejecución del cliente, una vez que tengamos el proxy del main, hay que realizar (con el proxy del main entre comillas):
 ```bash
-iceflix <proxy del main>
+./run_client <proxy del main>
 ```
 Y se lanzará el cliente.
 ## Uso
 Una vez ejecutado el cliente y se haya conectado con el main, veremos el menú principal. Para listar las opciones del menú, basta con introducir "?". Estas opciones son:
 
-* ***Login:***
-opción para iniciar sesión, ya sea como usuario o como administrador. 
+* ***Login:*** opción para iniciar sesión, ya sea como usuario o como administrador. 
 * ***Búsqueda por nombre:*** realizar una búsqueda en el catálogo insertando un nombre.
 * ***Salir:*** al ejecutar esta opción, se acabará la ejecución del cliente.
 
