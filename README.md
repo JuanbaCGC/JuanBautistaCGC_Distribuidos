@@ -1,6 +1,6 @@
 # Manual del Cliente de IceFlix
 
-Antes de ejecutar el cliente, hay que haces la siguiente instalación
+Para ejecutar el cliente, hay que hacer la siguiente instalación.
 
 ## Instalación
 
@@ -13,7 +13,7 @@ Una vez creado este entorno, estando en la carpeta raíz del directorio, ejecuta
 ```bash
 pip install -e .
 ```
-Y acto seguido se cargaran las dependencias necesarias.
+Y acto seguido se instalarán las dependencias necesarias.
 
 ## Ejecución
 Para la ejecución del cliente, una vez que tengamos el proxy del main, hay que realizar (con el proxy del main entre comillas):
