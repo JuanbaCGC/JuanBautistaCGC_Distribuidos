@@ -13,12 +13,12 @@ import IceFlix
 
 # pylint: disable=too-many-arguments
 
-def get_opcion():
-    """Método para obtener la opción (1 ó 2) que introduzca el usuario"""
+def get_opcion(opciones):
+    """Método para obtener la opción que introduzca el usuario"""
     while True:
         try:
             opcion = int(input("Eleccion:"))
-            if opcion==1 or opcion==2:
+            if opcion in opciones:
                 break
             else:
                     print("Introduce un número del 1 al 2")
@@ -173,7 +173,7 @@ class ClientShell(cmd.Cmd):
             
             print("¿Quieres iniciar sesión como usuario o administrador? Introduce 1 ó 2")
             print("1. Usuario\n2. Administrador")
-            opcion = get_opcion()
+            opcion = get_opcion([1,2])
                     
             # Login para usuario
             if opcion == 1:
@@ -286,7 +286,8 @@ class AdminShell(cmd.Cmd):
             if(len(lista) == 0):
                 print("No existe ningún archivo con el nombre indicado.")
             else:
-                self.catalog.removeMedia(lista[0],self.file_service)
+                # self.catalog.removeMedia(lista[0],self.file_service)
+                self.file_service.removeFile(lista[0],self.admin_token)
         else:
             print(f"{bcolors.FAIL}No se puede eliminar ningún archivo ya que no se ha podido conectar con los servicios.{bcolors.ENDC}")
     
@@ -336,7 +337,7 @@ class NormalUserShell(cmd.Cmd):
             print(f"{bcolors.FAIL}No se puede realizar la búsqueda ya que no se ha podido conectar con los servicios.{bcolors.ENDC}")
             return 0
         print("Elije una opción (introduce un número 1 o 2).\n1. Búsqueda por nombre\n2. Búsqueda por tags")
-        opcion = get_opcion()
+        opcion = get_opcion([1,2])
         # Búsqueda por nombre
         if(opcion==1):
             self.token_usuario = comprobar_token(self.nombre_usuario,self.hassed_pass,self.token_usuario,self.authenticator)
@@ -353,13 +354,13 @@ class NormalUserShell(cmd.Cmd):
         self.token_usuario = comprobar_token(self.nombre_usuario,self.hassed_pass,self.token_usuario,self.authenticator)
         tags = get_tags(media_id[0],self.token_usuario,self.catalog)
         print("El título seleccionado ha sido",f"{bcolors.BOLD}",self.titulo, f"{bcolors.ENDC}con los tags -->", tags,"\n")
-        print("¿Que acción quieres realizar? Introduce 1 ó 2:\n1. Añadir tags\n2. Eliminar tags")
-        opcion = get_opcion()
+        print("¿Deseas añadir o eliminar tags? Introduce 1 ó 2:\n1. Añadir tags\n2. Eliminar tags. \n3 No quiero editar los tags.")
+        opcion = get_opcion([1,2,3])
         # Añadir tags
         if(opcion == 1):
            añadir_tags(self.titulo, self.token_usuario,self.nombre_usuario,self.hassed_pass,self.authenticator,self.catalog)
         # Eliminar tags
-        else:
+        elif (opcion == 2):
             if(len(tags) == 0):
                 print("No se pueden eliminar tags de su selección ya que no tiene ningún tag.\nVolviendo al menú...\n")
                 return 0
@@ -377,6 +378,8 @@ class NormalUserShell(cmd.Cmd):
                     self.token_usuario = comprobar_token(self.nombre_usuario,self.hassed_pass,self.token_usuario,self.authenticator)
                     self.catalog.removeTags(media_id[0],tags_list, self.token_usuario)
                     print(f"{bcolors.OKCYAN}Se han eliminado los tags.\n{bcolors.ENDC}")
+        else:
+            print(f"{bcolors.OKCYAN}No se ha editado ningún tag.\n{bcolors.ENDC}")
         return 0
        
     def do_realizarDescarga(self,arg):
