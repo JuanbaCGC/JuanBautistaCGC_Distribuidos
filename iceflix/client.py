@@ -23,7 +23,7 @@ def get_opcion(opciones):
             if opcion in opciones:
                 break
             else:
-                    print("Introduce un número del 1 al 2")
+                    print("Introduce un número del 1 al",opciones[-1])
         except ValueError:
                 print("Introduce un número.")    
     return opcion
@@ -160,6 +160,18 @@ class Uploader(IceFlix.FileUploader):
         self.filename = tkinter.filedialog.askopenfilename()
         self.f = open(self.filename)
 
+class AnnouncementI(IceFlix.Announcement):
+    def __init__(self):
+        self.main = None
+        self.all_mains = {}
+        self.event = threading.Event()
+        
+    def announce(self,service, srvId, current=None):
+        if service.ice_isA('::IceFlix::Main'):
+            self.main = IceFlix.AuthenticatorPrx.uncheckedCast(service)
+            print("Servidor principal conectado")
+            self.event.set()
+            
 class ClientShell(cmd.Cmd):
         """Clase que implementa el menú de un usuario no logeado"""
         intro = 'Bienvenido al IceFlix menu. Escribe "help" ó "?" para listar las opciones.\nEscribe help <opcion> para obtener un resumen.'
@@ -425,58 +437,28 @@ class NormalUserShell(cmd.Cmd):
         self.token_usuario = token_usuario
         self.titulo = ""
         self.id_titulo = ""
-
-class AnnouncementI(IceFlix.Announcement):
-    def __init__(self):
-        self.main = None
-        self.all_mains = {}
-        self.event = threading.Event()
-        
-    def announce(self,service, srvId):
-        if service.ice_isA("::IceFlix::Main"):
-            self.allmains[srvId] = IceFlix.MainPrx.uncheckedCast(service)
-            self.main = IceFlix.MainPrx.uncheckedCast(service)
-            print("Servidor principal conectado")
-            self.event.set()
         
 class Client(Ice.Application):
     """Clase en la que se intenta conectar con el proxy del main pasado por parámetros"""
     # ----- Clase Cliente ----- #
     def run(self, args):
-        # if(len(sys.argv) != 2):
-        #     print("Tienes que insertar el proxy del main. \nSaliendo del programa...")
-        #     return -1
-        # contador = 0
-        # comprobacion = False
-        # while contador != 3:
-        #     contador +=1
-        #     try:
-        #         proxy = self.communicator().stringToProxy(args[1])
-        #         main = IceFlix.MainPrx.checkedCast(proxy)
-        #         comprobacion = True
-        #     except:
-        #         print(f"{bcolors.WARNING}Intento número",contador,f"de conexión fallido por el proxy.{bcolors.ENDC}")
-        #         time.sleep(5)
-        #     else:
-        #         break
-        # if comprobacion is True:
         broker = self.communicator()
             
         proxy = broker.stringToProxy("IceStorm/TopicManager:tcp -p 10000")
         topic_manager = IceStorm.TopicManagerPrx.checkedCast(proxy)
             
         announcement_topic = topic_manager.retrieve("Announcements")
-        announ_ser = AnnouncementI()
+        announcement_servant = AnnouncementI()
             
         adapter = broker.createObjectAdapter("ClientAdapter")
-        announcement_proxy = adapter.addWithUUID(announ_ser)
+        announcement_proxy = adapter.addWithUUID(announcement_servant)
             
         announcement_topic.subscribeAndGetPublisher({},announcement_proxy)
             
-        if not announ_ser.event.wait(timeout=60):
+        if not announcement_servant.event.wait(timeout=60):
             raise RuntimeError(f'{bcolors.FAIL}No se ha encontrado ningún main en 60 segundos{bcolors.ENDC}')
         else:
-            hilo = Thread(target=ClientShell(announ_ser.main,broker).cmdloop(), daemon=True)
+            hilo = Thread(target=ClientShell(announcement_servant.main,broker).cmdloop(), daemon=True)
             hilo.start()
             sys.stdout.flush()
             self.shutdownOnInterrupt()
@@ -485,5 +467,4 @@ class Client(Ice.Application):
         #     raise RuntimeError(f'{bcolors.FAIL}Se han realizado todos los intentos de conexión. Error con el proxy{bcolors.ENDC}')
               
         return 1
-
 sys.exit(Client().main(sys.argv))
