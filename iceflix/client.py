@@ -163,16 +163,13 @@ class Uploader(IceFlix.FileUploader):
 class AnnouncementI(IceFlix.Announcement):
     def __init__(self):
         self.main = None
-        self.all_mains = []
         self.event = threading.Event()
         
     def announce(self,service, srvId, current=None):
-        if service.ice_isA('::IceFlix::Main'):
-            main = IceFlix.AuthenticatorPrx.uncheckedCast(service)
-            self.main = main
-            self.all_mains.append(main)
-            print("Servidor principal conectado")
-            self.event.set()
+            if service.ice_isA('::IceFlix::Main'):
+                self.main = IceFlix.MainPrx.uncheckedCast(service)
+                print("Servidor principal conectado")
+                self.event.set()
             
 class ClientShell(cmd.Cmd):
         """Clase que implementa el menú de un usuario no logeado"""
@@ -457,7 +454,7 @@ class Client(Ice.Application):
         announcement_proxy = adapter.addWithUUID(announcement_servant)
             
         announcement_topic.subscribeAndGetPublisher({},announcement_proxy)
-            
+        print("Esperando a recibir mains del topic Announcements")
         if not announcement_servant.event.wait(timeout=60):
             raise RuntimeError(f'{bcolors.FAIL}No se ha encontrado ningún main en 60 segundos{bcolors.ENDC}')
         else:

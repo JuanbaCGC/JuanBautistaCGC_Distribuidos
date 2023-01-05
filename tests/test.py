@@ -57,7 +57,6 @@ class ServerMain(Ice.Application):
             raise RuntimeError("Invalid publisher proxy")
         
         announcement.announce(proxy,str(uuid.uuid4()))
-        print("Se ha anunciado el main de prueba")
 
         print(proxy, flush=True)
         adapter.activate()
