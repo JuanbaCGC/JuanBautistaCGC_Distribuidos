@@ -163,12 +163,14 @@ class Uploader(IceFlix.FileUploader):
 class AnnouncementI(IceFlix.Announcement):
     def __init__(self):
         self.main = None
-        self.all_mains = {}
+        self.all_mains = []
         self.event = threading.Event()
         
     def announce(self,service, srvId, current=None):
         if service.ice_isA('::IceFlix::Main'):
-            self.main = IceFlix.AuthenticatorPrx.uncheckedCast(service)
+            main = IceFlix.AuthenticatorPrx.uncheckedCast(service)
+            self.main = main
+            self.all_mains.append(main)
             print("Servidor principal conectado")
             self.event.set()
             
@@ -451,6 +453,7 @@ class Client(Ice.Application):
         announcement_servant = AnnouncementI()
             
         adapter = broker.createObjectAdapter("ClientAdapter")
+        adapter.activate()
         announcement_proxy = adapter.addWithUUID(announcement_servant)
             
         announcement_topic.subscribeAndGetPublisher({},announcement_proxy)
@@ -463,8 +466,6 @@ class Client(Ice.Application):
             sys.stdout.flush()
             self.shutdownOnInterrupt()
             broker.waitForShutdown() 
-        # else:
-        #     raise RuntimeError(f'{bcolors.FAIL}Se han realizado todos los intentos de conexión. Error con el proxy{bcolors.ENDC}')
               
         return 1
 sys.exit(Client().main(sys.argv))
