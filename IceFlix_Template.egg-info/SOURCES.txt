@@ -13,4 +13,6 @@ iceflix/client.py
 iceflix/iceflix.ice
 iceflix/main.py
 tests/__init__.py
+tests/iceflix.ice
+tests/test.py
 tests/test_example.py
