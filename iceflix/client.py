@@ -161,6 +161,7 @@ class Uploader(IceFlix.FileUploader):
         self.f = open(self.filename)
 
 class AnnouncementI(IceFlix.Announcement):
+    """Clase que implementa la interfaz Announcement para el topic Announcements"""
     def __init__(self, boolean):
         self.search_main = boolean
         self.ids = []
@@ -169,6 +170,7 @@ class AnnouncementI(IceFlix.Announcement):
         self.event = threading.Event()
         
     def announce(self,service, srvId, current=None):
+        """Método para obtener o bien el main para conectarse a el o los anunciamientos de todos los servicios"""
         if self.search_main is True:
             if service.ice_isA('::IceFlix::Main'):
                 self.main = IceFlix.MainPrx.uncheckedCast(service)
@@ -187,6 +189,7 @@ class AnnouncementI(IceFlix.Announcement):
                 print(f"{bcolors.OKCYAN}\nNuevo FileService anunciado:",service,", id:", srvId,f"{bcolors.ENDC}")
 
 class UserUpdateI(IceFlix.UserUpdate):
+    """Clase que implementa la interfaz UserUpdate"""
     def newToken(self,user, token, serviceId, current=None):
         print(f"{bcolors.OKCYAN}\nSe ha creado un nuevo token",token,"para el usuario", user, "por el Authenticator",serviceId,f"{bcolors.ENDC}")
     
@@ -200,6 +203,7 @@ class UserUpdateI(IceFlix.UserUpdate):
         print(f"{bcolors.OKCYAN}\nEl usuario",user,"ha sido eliminado por el Authenticator",serviceId,f"{bcolors.ENDC}")
 
 class CatalogUpdateI(IceFlix.CatalogUpdate):
+    """Clase que implementa la interfaz CatalogUpdate para el topic CatalogUpdates"""
     def renameTile(self,mediaId, newName, serviceId, current=None):
         print(f"{bcolors.OKCYAN}\nEl fichero con id",mediaId,"ha sido renombrado a ",newName, "por el Catalog",serviceId,f"{bcolors.ENDC}")
 
@@ -210,6 +214,7 @@ class CatalogUpdateI(IceFlix.CatalogUpdate):
         print(f"{bcolors.OKCYAN}\nEl usuario",user,"ha eliminado los tags",tags,"del fichero con id ",mediaId,"con el Catalog",serviceId,f"{bcolors.ENDC}")
 
 class FileAvailabilityAnnounceI(IceFlix.FileAvailabilityAnnounce):
+    """Clase que implementa la interfaz FileAvailabilityAnnounce para el topic FileAvailabilityAnnounces"""
     def announceFiles(self,mediaIds,serviceId,current=None):
             print(f"{bcolors.OKCYAN}\nLa lista de identificadores de los archivos del FileService",serviceId,"es:",mediaIds,f"{bcolors.ENDC}")
 
