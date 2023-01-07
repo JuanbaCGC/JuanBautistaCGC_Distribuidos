@@ -8,8 +8,8 @@ import IceStorm
 import uuid
 
 
-class Catalog(IceFlix.MediaCatalog):
-    """Servant for the IceFlix.MediaCatalog interface.
+class FileI(IceFlix.FileService):
+    """Servant for the IceFlix.Authenticator interface.
 
     Disclaimer: this is demo code, it lacks of most of the needed methods
     for this interface. Use it with caution
@@ -18,31 +18,28 @@ class Catalog(IceFlix.MediaCatalog):
 class ServerMain(Ice.Application):
     def run(self, args):
         broker = self.communicator()
-        servant = Catalog()
-        adapter = broker.createObjectAdapterWithEndpoints("CatalogAdapter",'default')
+        servant = FileI()
+        adapter = broker.createObjectAdapterWithEndpoints("FileAdapter",'default')
         
-        proxy = adapter.add(servant, broker.stringToIdentity("catalog1"))
+        proxy = adapter.add(servant, broker.stringToIdentity("file1"))
+
 
         topic_manager_str_proxy = "IceStorm/TopicManager -t:tcp -h localhost -p 10000"
         topic_manager = IceStorm.TopicManagerPrx.checkedCast(
             self.communicator().stringToProxy(topic_manager_str_proxy),
         )
-        topicPrx = topic_manager.retrieve('CatalogUpdates')
+        topicPrx = topic_manager.retrieve('FileAvailabilityAnnounces')
         
         pub = topicPrx.getPublisher()
-        announcement = IceFlix.CatalogUpdatePrx.uncheckedCast(pub)
+        announcement = IceFlix.FileAvailabilityAnnouncePrx.uncheckedCast(pub)
         
         if not announcement:
             raise RuntimeError("Invalid publisher proxy")
         
-        announcement.renameTile("12345","Harry Potter y la piedra filosofal",str(uuid.uuid4()))
-        announcement.addTags("12345","Juanba",["magos","escobas","acción","fantástica"],str(uuid.uuid4()))
-        announcement.removeTags("12345","Juanba",["magos","escobas","fantástica"],str(uuid.uuid4()))
-
-        print(proxy, flush=True)
+        announcement.announceFiles([str(uuid.uuid4()),"lasjdlsjlkjf","123456789"], str(uuid.uuid4()))
         adapter.activate()
         self.shutdownOnInterrupt()
-        broker.waitForShutdown()
+        broker.shutdown()
         return 0
 
 if __name__ == '__main__':

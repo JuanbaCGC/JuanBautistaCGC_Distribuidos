@@ -58,10 +58,9 @@ class ServerMain(Ice.Application):
         
         announcement.announce(proxy,str(uuid.uuid4()))
 
-        print(proxy, flush=True)
         adapter.activate()
         self.shutdownOnInterrupt()
-        broker.waitForShutdown()
+        broker.shutdown()
         return 0
 
 if __name__ == '__main__':

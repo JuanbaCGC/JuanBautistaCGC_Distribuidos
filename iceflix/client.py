@@ -211,7 +211,7 @@ class CatalogUpdateI(IceFlix.CatalogUpdate):
 
 class FileAvailabilityAnnounceI(IceFlix.FileAvailabilityAnnounce):
     def announceFiles(self,mediaIds,serviceId,current=None):
-            print(f"{bcolors.OKCYAN}\nLa lista de identificadores del FileService",serviceId,"es:",mediaIds,f"{bcolors.ENDC}")
+            print(f"{bcolors.OKCYAN}\nLa lista de identificadores de los archivos del FileService",serviceId,"es:",mediaIds,f"{bcolors.ENDC}")
 
 class ClientShell(cmd.Cmd):
         """Clase que implementa el menú de un usuario no logeado"""

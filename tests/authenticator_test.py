@@ -39,10 +39,9 @@ class ServerMain(Ice.Application):
         announcement.newUser("JUANBA","12345",str(uuid.uuid4()))
         announcement.newToken("JUANBA","LJLKSJDFLKAJSLKDFJLAKSJFI4UROWJE",str(uuid.uuid4()))
         announcement.revokeToken("lsjLFJKASLK", str(uuid.uuid4()))
-        print(proxy, flush=True)
         adapter.activate()
         self.shutdownOnInterrupt()
-        broker.waitForShutdown()
+        broker.shutdown()
         return 0
 
 if __name__ == '__main__':
