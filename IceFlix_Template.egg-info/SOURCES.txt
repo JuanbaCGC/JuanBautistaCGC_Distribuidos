@@ -13,6 +13,9 @@ iceflix/client.py
 iceflix/iceflix.ice
 iceflix/main.py
 tests/__init__.py
+tests/authenticator_test.py
+tests/catalog_test.py
+tests/fileService_test.py
 tests/iceflix.ice
-tests/test.py
+tests/main_test.py
 tests/test_example.py
