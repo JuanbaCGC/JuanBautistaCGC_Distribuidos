@@ -186,6 +186,19 @@ class AnnouncementI(IceFlix.Announcement):
             elif service.ice_isA('::IceFlix::FileService'):
                 print(f"{bcolors.OKCYAN}\nNuevo FileService anunciado:",service,", id:", srvId,f"{bcolors.ENDC}")
 
+class UserUpdateI(IceFlix.UserUpdate):
+    def newToken(self,user, token, serviceId, current=None):
+        print(f"{bcolors.OKCYAN}\nSe ha creado un nuevo token",token,"para el usuario", user, "por el Authenticator",serviceId,f"{bcolors.ENDC}")
+    
+    def revokeToken(self,token,serviceId, current=None):
+        print(f"{bcolors.OKCYAN}\nSe ha anulado el token",token,"por el Authenticator",serviceId,f"{bcolors.ENDC}")
+
+    def newUser(self, user,passwordHash, serviceId, current=None):
+        print(f"{bcolors.OKCYAN}\nEl usuario",user,"ha sido creado por el Authenticator",serviceId,f"{bcolors.ENDC}")
+
+    def removeUser(self, user, serviceId, current=None):
+        print(f"{bcolors.OKCYAN}\nEl usuario",user,"ha sido eliminado por el Authenticator",serviceId,f"{bcolors.ENDC}")
+
 class ClientShell(cmd.Cmd):
         """Clase que implementa el menú de un usuario no logeado"""
         intro = 'Bienvenido al IceFlix menu. Escribe "help" ó "?" para listar las opciones.\nEscribe help <opcion> para obtener un resumen.'
@@ -262,17 +275,24 @@ class AdminShell(cmd.Cmd):
     
 
     def run(self):
-        # Topic Announcements
+        # Topic "Announcements"
         proxy = self.broker.stringToProxy("IceStorm/TopicManager:tcp -p 10000")
         topic_manager = IceStorm.TopicManagerPrx.checkedCast(proxy)
             
         announcement_topic = topic_manager.retrieve("Announcements")
         announcement_servant = AnnouncementI(False)
         self.adapter_announcements = self.broker.createObjectAdapter("AdminAdapter")
-        self.adapter_announcements.activate()
+        
         announcement_proxy = self.adapter_announcements.addWithUUID(announcement_servant)
         announcement_topic.subscribeAndGetPublisher({},announcement_proxy)
+        # Topic "UserUpdates"
+        user_updates_topic = topic_manager.retrieve("UserUpdates")
+        user_updates_servant = UserUpdateI()
+        user_updates_proxy = self.adapter_announcements.addWithUUID(user_updates_servant)
+        user_updates_topic.subscribeAndGetPublisher({},user_updates_proxy)
+        
 
+        self.adapter_announcements.activate()
     # ----- Opciones del menú del administrador ----- #
     def do_agregarUsuario(self,arg):
         """Añadir un usuario a la base de datos del programa."""
