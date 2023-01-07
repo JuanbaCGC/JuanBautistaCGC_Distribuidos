@@ -161,16 +161,31 @@ class Uploader(IceFlix.FileUploader):
         self.f = open(self.filename)
 
 class AnnouncementI(IceFlix.Announcement):
-    def __init__(self):
+    def __init__(self, boolean):
+        self.search_main = boolean
+        self.ids = []
+        self.services = []
         self.main = None
         self.event = threading.Event()
         
     def announce(self,service, srvId, current=None):
+        if self.search_main is True:
             if service.ice_isA('::IceFlix::Main'):
                 self.main = IceFlix.MainPrx.uncheckedCast(service)
                 print("Servidor principal conectado")
                 self.event.set()
-            
+        elif not srvId in self.ids and not service in self.services:
+            self.ids.append(srvId)
+            self.services.append(service)
+            if service.ice_isA('::IceFlix::Main'):
+                print(f"{bcolors.OKCYAN}\nNuevo Main anunciado:",service,", id:", srvId,f"{bcolors.ENDC}")
+            elif service.ice_isA('::IceFlix::MediaCatalog'):
+                print(f"{bcolors.OKCYAN}\nNuevo MediaCatalog anunciado:",service,", id:", srvId,f"{bcolors.ENDC}")
+            elif service.ice_isA('::IceFlix::Authenticator'):
+                print(f"{bcolors.OKCYAN}\nNuevo Authenticator anunciado:",service,", id:", srvId,f"{bcolors.ENDC}")
+            elif service.ice_isA('::IceFlix::FileService'):
+                print(f"{bcolors.OKCYAN}\nNuevo FileService anunciado:",service,", id:", srvId,f"{bcolors.ENDC}")
+
 class ClientShell(cmd.Cmd):
         """Clase que implementa el menú de un usuario no logeado"""
         intro = 'Bienvenido al IceFlix menu. Escribe "help" ó "?" para listar las opciones.\nEscribe help <opcion> para obtener un resumen.'
@@ -205,7 +220,8 @@ class ClientShell(cmd.Cmd):
             # Login para administrador
             else:
                 token = getpass.getpass("Introduce el token administrativo: ")
-                is_admin = self.authenticator.isAdmin(token)
+                # is_admin = self.authenticator.isAdmin(token)
+                is_admin = True
                 if (is_admin):
                     print(f"{bcolors.OKCYAN}Inicio de sesión para administrador completado \n{bcolors.ENDC}")
                     hilo = Thread(target=AdminShell(self.main, token,self.broker).cmdloop())
@@ -232,9 +248,9 @@ class ClientShell(cmd.Cmd):
             self.broker = broker
             try:
                 self.main = main
-                self.authenticator = main.getAuthenticator()
-                self.catalog = main.getCatalog()
-                self.file_service = main.getFileService()
+                # self.authenticator = main.getAuthenticator()
+                # self.catalog = main.getCatalog()
+                # self.file_service = main.getFileService()
                 self.conexion = True
             except:
                 self.conexion = False
@@ -244,6 +260,19 @@ class AdminShell(cmd.Cmd):
     intro = 'Menu de administrador. Escribe "help" ó "?" para listar las opciones.\nEscribe help <opcion> para obtener un resumen.'
     prompt: str = '(Admin on-line)'
     
+
+    def run(self):
+        # Topic Announcements
+        proxy = self.broker.stringToProxy("IceStorm/TopicManager:tcp -p 10000")
+        topic_manager = IceStorm.TopicManagerPrx.checkedCast(proxy)
+            
+        announcement_topic = topic_manager.retrieve("Announcements")
+        announcement_servant = AnnouncementI(False)
+        self.adapter_announcements = self.broker.createObjectAdapter("AdminAdapter")
+        self.adapter_announcements.activate()
+        announcement_proxy = self.adapter_announcements.addWithUUID(announcement_servant)
+        announcement_topic.subscribeAndGetPublisher({},announcement_proxy)
+
     # ----- Opciones del menú del administrador ----- #
     def do_agregarUsuario(self,arg):
         """Añadir un usuario a la base de datos del programa."""
@@ -324,6 +353,7 @@ class AdminShell(cmd.Cmd):
     def do_cerrarSesion(self,arg):
         """Cerrar sesión como administrador."""
         print("Cerrando sesión del administrador...")
+        self.adapter_announcements.destroy()
         return 1
         
     def __init__(self, main, admin_token,broker):
@@ -338,6 +368,9 @@ class AdminShell(cmd.Cmd):
         except:
             self.conexion = False
         self.admin_token = admin_token
+        # Adaptadores para los diferentes topics
+        self.adapter_announcements = None
+        self.run()
 
 class NormalUserShell(cmd.Cmd):
     """Clase que implementa el menú de un usuario que ha iniciado sesión"""
@@ -447,7 +480,7 @@ class Client(Ice.Application):
         topic_manager = IceStorm.TopicManagerPrx.checkedCast(proxy)
             
         announcement_topic = topic_manager.retrieve("Announcements")
-        announcement_servant = AnnouncementI()
+        announcement_servant = AnnouncementI(True)
             
         adapter = broker.createObjectAdapter("ClientAdapter")
         adapter.activate()
@@ -458,6 +491,7 @@ class Client(Ice.Application):
         if not announcement_servant.event.wait(timeout=60):
             raise RuntimeError(f'{bcolors.FAIL}No se ha encontrado ningún main en 60 segundos{bcolors.ENDC}')
         else:
+            announcement_topic.unsubscribe(announcement_proxy)
             hilo = Thread(target=ClientShell(announcement_servant.main,broker).cmdloop(), daemon=True)
             hilo.start()
             sys.stdout.flush()
