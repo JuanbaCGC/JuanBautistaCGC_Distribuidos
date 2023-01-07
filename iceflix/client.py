@@ -199,6 +199,16 @@ class UserUpdateI(IceFlix.UserUpdate):
     def removeUser(self, user, serviceId, current=None):
         print(f"{bcolors.OKCYAN}\nEl usuario",user,"ha sido eliminado por el Authenticator",serviceId,f"{bcolors.ENDC}")
 
+class CatalogUpdateI(IceFlix.CatalogUpdate):
+    def renameTile(self,mediaId, newName, serviceId, current=None):
+        print(f"{bcolors.OKCYAN}\nEl fichero con id",mediaId,"ha sido renombrado a ",newName, "por el Catalog",serviceId,f"{bcolors.ENDC}")
+
+    def addTags(self,mediaId, user, tags, serviceId, current=None):
+        print(f"{bcolors.OKCYAN}\nEl usuario",user,"ha añadido los tags",tags,"al fichero con id ",mediaId,"con el Catalog",serviceId,f"{bcolors.ENDC}")
+
+    def removeTags(self, mediaId, user, tags, serviceId, current=None):
+        print(f"{bcolors.OKCYAN}\nEl usuario",user,"ha eliminado los tags",tags,"del fichero con id ",mediaId,"con el Catalog",serviceId,f"{bcolors.ENDC}")
+
 class ClientShell(cmd.Cmd):
         """Clase que implementa el menú de un usuario no logeado"""
         intro = 'Bienvenido al IceFlix menu. Escribe "help" ó "?" para listar las opciones.\nEscribe help <opcion> para obtener un resumen.'
@@ -290,7 +300,12 @@ class AdminShell(cmd.Cmd):
         user_updates_servant = UserUpdateI()
         user_updates_proxy = self.adapter_announcements.addWithUUID(user_updates_servant)
         user_updates_topic.subscribeAndGetPublisher({},user_updates_proxy)
-        
+        # Topic "CatalogUpdates"
+        catalog_updates_topic = topic_manager.retrieve("CatalogUpdates")
+        catalog_updates_servant = CatalogUpdateI()
+        catalog_updates_proxy = self.adapter_announcements.addWithUUID(catalog_updates_servant)
+        catalog_updates_topic.subscribeAndGetPublisher({},catalog_updates_proxy)
+
 
         self.adapter_announcements.activate()
     # ----- Opciones del menú del administrador ----- #
