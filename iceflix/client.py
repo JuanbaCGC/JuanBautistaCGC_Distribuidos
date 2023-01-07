@@ -209,6 +209,10 @@ class CatalogUpdateI(IceFlix.CatalogUpdate):
     def removeTags(self, mediaId, user, tags, serviceId, current=None):
         print(f"{bcolors.OKCYAN}\nEl usuario",user,"ha eliminado los tags",tags,"del fichero con id ",mediaId,"con el Catalog",serviceId,f"{bcolors.ENDC}")
 
+class FileAvailabilityAnnounceI(IceFlix.FileAvailabilityAnnounce):
+    def announceFiles(self,mediaIds,serviceId,current=None):
+            print(f"{bcolors.OKCYAN}\nLa lista de identificadores del FileService",serviceId,"es:",mediaIds,f"{bcolors.ENDC}")
+
 class ClientShell(cmd.Cmd):
         """Clase que implementa el menú de un usuario no logeado"""
         intro = 'Bienvenido al IceFlix menu. Escribe "help" ó "?" para listar las opciones.\nEscribe help <opcion> para obtener un resumen.'
@@ -305,7 +309,11 @@ class AdminShell(cmd.Cmd):
         catalog_updates_servant = CatalogUpdateI()
         catalog_updates_proxy = self.adapter_announcements.addWithUUID(catalog_updates_servant)
         catalog_updates_topic.subscribeAndGetPublisher({},catalog_updates_proxy)
-
+        # Topic "FileAvailabilityAnnounces"
+        file_availability_topic = topic_manager.retrieve("FileAvailabilityAnnounces")
+        file_availability_servant = FileAvailabilityAnnounceI()
+        file_availability_proxy = self.adapter_announcements.addWithUUID(file_availability_servant)
+        file_availability_topic.subscribeAndGetPublisher({},file_availability_proxy)
 
         self.adapter_announcements.activate()
     # ----- Opciones del menú del administrador ----- #
