@@ -252,8 +252,7 @@ class ClientShell(cmd.Cmd):
             # Login para administrador
             else:
                 token = getpass.getpass("Introduce el token administrativo: ")
-                # is_admin = self.authenticator.isAdmin(token)
-                is_admin = True
+                is_admin = self.authenticator.isAdmin(token)
                 if (is_admin):
                     print(f"{bcolors.OKCYAN}Inicio de sesión para administrador completado \n{bcolors.ENDC}")
                     hilo = Thread(target=AdminShell(self.main, token,self.broker).cmdloop())
@@ -280,9 +279,9 @@ class ClientShell(cmd.Cmd):
             self.broker = broker
             try:
                 self.main = main
-                # self.authenticator = main.getAuthenticator()
-                # self.catalog = main.getCatalog()
-                # self.file_service = main.getFileService()
+                self.authenticator = main.getAuthenticator()
+                self.catalog = main.getCatalog()
+                self.file_service = main.getFileService()
                 self.conexion = True
             except:
                 self.conexion = False
@@ -292,16 +291,14 @@ class AdminShell(cmd.Cmd):
     intro = 'Menu de administrador. Escribe "help" ó "?" para listar las opciones.\nEscribe help <opcion> para obtener un resumen.'
     prompt: str = '(Admin on-line)'
     
-
     def run(self):
-        # Topic "Announcements"
         proxy = self.broker.stringToProxy("IceStorm/TopicManager:tcp -p 10000")
         topic_manager = IceStorm.TopicManagerPrx.checkedCast(proxy)
-            
+
+        # Topic "Announcements"
         announcement_topic = topic_manager.retrieve("Announcements")
         announcement_servant = AnnouncementI(False)
         self.adapter_announcements = self.broker.createObjectAdapter("AdminAdapter")
-        
         announcement_proxy = self.adapter_announcements.addWithUUID(announcement_servant)
         announcement_topic.subscribeAndGetPublisher({},announcement_proxy)
         # Topic "UserUpdates"
@@ -416,7 +413,6 @@ class AdminShell(cmd.Cmd):
         except:
             self.conexion = False
         self.admin_token = admin_token
-        # Adaptadores para los diferentes topics
         self.adapter_announcements = None
         self.run()
 
