@@ -13,130 +13,6 @@ import Ice
 import IceFlix
 import IceStorm
 
-# pylint: disable=too-many-arguments
-
-def get_opcion(opciones):
-    """Método para obtener la opción que introduzca el usuario"""
-    while True:
-        try:
-            opcion = int(input("Eleccion:"))
-            if opcion in opciones:
-                break
-            else:
-                    print("Introduce un número del 1 al",opciones[-1])
-        except ValueError:
-                print("Introduce un número.")    
-    return opcion
-   
-def mostrar_busqueda(lista, token_usuario, catalog):
-    """Método para obtener los tags de los identificadores que devuelve una búsqueda """
-    pos = 0
-    print("Hay",len(lista),"resultados:")
-    while pos < len(lista):
-        try:
-            media = catalog.getTile(lista[pos],token_usuario)
-        except:
-            print(f"{bcolors.FAIL}Error con el catalog.{bcolors.ENDC}")
-        else:
-            
-            print(f"{bcolors.OKBLUE}",pos+1, "->", media.info.name,".Tags:", 
-                  media.info.tags, ".Id:",lista[pos],f"{bcolors.ENDC}")
-            pos +=1
-    
-def mostrar_busqueda_anonima(lista):
-    """Método para recorrer una lista de un usuario no logeado"""
-    pos = 0
-    print("Hay",len(lista),"resultados:")
-    while pos < len(lista):
-        print(f"{bcolors.OKBLUE}",str(pos+1),"-",lista[pos],f"{bcolors.ENDC}")
-        pos+=1
-
-def titulo_existe(titulo, lista, catalog, token_usuario):
-    """Método para saber si un título de un archivo está en una lista o no"""
-    try:
-        existe = any(catalog.getTile(media_id, token_usuario).info.name == titulo for media_id in lista)
-    except:
-        print(f"{bcolors.FAIL}Error con el catalog.{bcolors.ENDC}")
-        return False
-    return existe
-
-def tags_existen(lista_tags,id,token_usuario,catalog):
-    """Método para saber si una serie de tags existen en los tags de un archivo"""
-    try:
-        media = catalog.getTile(id,token_usuario)
-    except:
-        print(f"{bcolors.FAIL}Error con el catalog.{bcolors.ENDC}")
-        return False
-
-    return all(tag in media.info.tags for tag in lista_tags)
-
-def get_tags(media_id, token_usuario,catalog):
-    """Método para obtener los tags de un archivo"""
-    try:
-        media = catalog.getTile(media_id,token_usuario)
-    except:
-        print(f"{bcolors.FAIL}Error con el catalog.{bcolors.ENDC}")
-        tags = ""
-    else:
-        tags = media.info.tags
-    return tags
-    
-def busqueda_por_nombres(token_usuario,catalog):
-    """Método para realizar una búsqueda en el catálogo por nombre"""
-    opcion = input("¿Desea realizar una búsqueda exacta del nombre? Introduzca SI/NO ó si/no: ").lower()
-    while opcion!= "si" and opcion != "no":
-        opcion = input("Opción no válida. ¿Desea realizar una búsqueda exacta del nombre? Introduzca SI/NO ó si/no: ")
-    name = input("Introduce la palabra a buscar: ")
-    lista = catalog.getTilesByName(name, opcion == "si")  
-    if len(lista) == 0:
-        print("No se han encontrado resultados en la búsqueda.")
-    elif token_usuario == "":
-        mostrar_busqueda_anonima(lista)
-    else:
-        mostrar_busqueda(lista,token_usuario,catalog)
-    return lista
-
-def busqueda_por_tags(nombre_usuario,hassed_pass, token_usuario,authenticator,catalog):
-    """Método para realizar una búsqueda por tags"""
-    opcion = input("¿Desea realizar una búsqueda exacta de los tags? Introduzca SI/NO ó si/no: ").lower()
-    while opcion!="si" and opcion!="no":
-        opcion = input("Opción no válida. ¿Desea realizar una búsqueda exacta de los tags? Introduzca SI/NO ó si/no: ")
-    tag_list = input("Introduce los tags separados por comas: ")
-    tag_list = (tag_list.replace(" ","")).split(',')
-    token_usuario = comprobar_token(nombre_usuario,hassed_pass,token_usuario,authenticator)
-    lista = catalog.getTilesByTags(tag_list,opcion=="si",token_usuario)
-    if len(lista) == 0:
-        print("No se han encontrado resultados para la búsqueda.")
-    else:
-        mostrar_busqueda(lista,token_usuario,catalog)
-    return lista
-
-def añadir_tags(titulo, token_usuario,nombre_usuario, hassed_pass,authenticator,catalog):
-    """Método para añadir tags a un archivo seleccionado"""
-    print("Escribe los tags que quieres añadir a ", titulo, " separados por comas:",end=" ")
-    tags = input()
-    tags_list = (tags.replace(" ","")).split(',')
-    token_usuario = comprobar_token(nombre_usuario,hassed_pass,token_usuario,authenticator)
-    media_id = catalog.getTilesByName(titulo,token_usuario)
-    token_usuario = comprobar_token(nombre_usuario,hassed_pass,token_usuario,authenticator)
-    catalog.addTags(media_id[0],tags_list, token_usuario)
-    print(f"{bcolors.OKCYAN}Se han añadido los tags indicados.\n{bcolors.ENDC}")
-    
-def comprobar_token(nombre_usuario, hassed_pass, token_usuario, authenticator):
-    """Método para actualizar el token de los usuarios cuando sea necesario"""
-    if(authenticator.isAuthorized(token_usuario) is False):
-        return authenticator.refreshAuthorization(nombre_usuario,hassed_pass)
-    return token_usuario
-
-def obtener_seleccion_usuario(lista,token_usuario,catalog):
-    """Método para obtener el título que selecciona un usuario"""
-    if not lista:
-        return ""
-    titulo = ""
-    while not titulo_existe(titulo, lista, catalog, token_usuario):
-        titulo = input("Introduce el título que quieres seleccionar: ")
-    return titulo
-
 class bcolors:
     """Clase para hacer prints de distintas formas"""
     OKBLUE = '\033[94m'
@@ -146,19 +22,146 @@ class bcolors:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
 
+# pylint: disable=too-many-arguments
+ERROR_NUMBER_INPUT = "Introduce un número."
+ERROR_OPTION_INPUT = "Introduce un número del 1 al {}."
+ERROR_CATALOG = f"{bcolors.FAIL}Error con el catalog.{bcolors.ENDC}"
+
+def get_option(options):
+    """Método para obtener la opción que introduzca el usuario"""
+    while True:
+        try:
+            opcion = int(input("Eleccion:"))
+            if opcion in options:
+                break
+            else:
+                    print(ERROR_OPTION_INPUT.format(options[-1]))
+        except ValueError:
+                print(ERROR_NUMBER_INPUT)     
+    return opcion
+   
+def show_search(results, user_token, catalog):
+    """Método para obtener los tags de los identificadores que devuelve una búsqueda """
+    pos = 0
+    print("Hay {} resultados:".format(len(results)))
+    while pos < len(results):
+        try:
+            media = catalog.getTile(results[pos],user_token)
+        except:
+            print(f"{bcolors.FAIL}Error con el catalog.{bcolors.ENDC}")
+        else:
+            
+            print(f"{bcolors.OKBLUE}",pos+1, "->", media.info.name,".Tags:", 
+                  media.info.tags, ".Id:",results[pos],f"{bcolors.ENDC}")
+            pos +=1
+    
+def show_anonymous_search(results_list):
+    """Método para recorrer una lista de un usuario no logeado"""
+    pos = 0
+    print("Hay {} resultados:".format(len(results_list)))
+    while pos < len(results_list):
+        print(f"{bcolors.OKBLUE}",str(pos+1),"-",results_list[pos],f"{bcolors.ENDC}")
+        pos += 1
+
+def title_exists(title, results_list, catalog, user_token):
+    """Método para saber si un título de un archivo está en una lista o no"""
+    try:
+        exists = any(catalog.getTile(media_id, user_token).info.name == title for media_id in results_list)
+    except:
+        print(ERROR_CATALOG)
+        return False
+    return exists
+
+def tags_exist(tags_list, media_id, user_token, catalog):
+    """Método para saber si una serie de tags existen en los tags de un archivo"""
+    try:
+        media = catalog.getTile(media_id, user_token)
+    except:
+        print(ERROR_CATALOG)
+        return False
+    return all(tag in media.info.tags for tag in tags_list)
+
+def get_tags(media_id, user_token, catalog):
+    """Método para obtener los tags de un archivo"""
+    try:
+        media = catalog.getTile(media_id, user_token)
+    except:
+        print(ERROR_CATALOG)
+        tags = ""
+    else:
+        tags = media.info.tags
+    return tags
+    
+def name_search(user_token, catalog):
+    """Método para realizar una búsqueda en el catálogo por nombre"""
+    opcion = input("¿Desea realizar una búsqueda exacta del nombre? Introduzca SI/NO ó si/no: ").lower()
+    while opcion != "si" and opcion != "no":
+        opcion = input("Opción no válida. ¿Desea realizar una búsqueda exacta del nombre? Introduzca SI/NO ó si/no: ").lower()
+    name = input("Introduce la palabra a buscar: ")
+    results_list = catalog.getTilesByName(name, opcion == "si")  
+    if len(results_list) == 0:
+        print("No se han encontrado resultados en la búsqueda.")
+    elif user_token == "":
+        show_anonymous_search(results_list)
+    else:
+        show_search(results_list, user_token, catalog)
+    return results_list
+
+def search_by_tags(username, hashed_password, user_token, authenticator, catalog):
+    """Método para realizar una búsqueda por tags"""
+    prompt = "¿Desea realizar una búsqueda exacta de los tags? Introduzca SI/NO ó si/no: "
+    option = input(prompt).lower()
+    while option != "si" and option != "no":
+        option = input("Opción no válida. " + prompt).lower()
+    tag_list = input("Introduce los tags separados por comas: ")
+    tag_list = (tag_list.replace(" ", "")).split(",")
+    user_token = validate_token(username, hashed_password, user_token, authenticator)
+    result_list = catalog.getTilesByTags(tag_list, option == "si", user_token)
+    if not result_list:
+        print("No se han encontrado resultados para la búsqueda.")
+    else:
+        show_search(result_list, user_token, catalog)
+    return result_list
+
+def add_tags(title, user_token, username, hashed_password, authenticator, catalog):
+    """Método para añadir tags a un archivo seleccionado"""
+    print("Escribe los tags que quieres añadir a", title, "separados por comas:", end=" ")
+    tags = input()
+    tag_list = (tags.replace(" ", "")).split(",")
+    user_token = validate_token(username, hashed_password, user_token, authenticator)
+    media_id = catalog.getTilesByName(title, user_token)
+    user_token = validate_token(username, hashed_password, user_token, authenticator)
+    catalog.addTags(media_id[0], tag_list, user_token)
+    print(f"{bcolors.OKCYAN}Se han añadido los tags indicados.\n{bcolors.ENDC}")
+    
+def validate_token(nombre_usuario, hashed_pass, token_usuario, authenticator):
+    """Método para actualizar el token de los usuarios cuando sea necesario"""
+    if not authenticator.isAuthorized(token_usuario):
+        return authenticator.refreshAuthorization(nombre_usuario, hashed_pass)
+    return token_usuario
+
+def get_user_selection(title_list, user_token, catalog):
+    """Método para obtener el título que selecciona un usuario"""
+    if not title_list:
+        return ""
+    selected_title = ""
+    while not title_exists(selected_title, title_list, catalog, user_token):
+        selected_title = input("Enter the title you want to select: ")
+    return selected_title
+
 class Uploader(IceFlix.FileUploader):
     """Clase para realizar la subida de archivos por el administrador"""
-    def receive(self,size):
+    def __init__(self, main):
+        self.authenticator = main.get_authenticator()
+        self.filename = tkinter.filedialog.askopenfilename()
+        self.f = open(self.filename)
+
+    def receive(self, size):
         return self.f.read(size)
         
     def close(self, user_token):
-        if self.authenticator.isAdmin(user_token):
+        if self.authenticator.is_admin(user_token):
             self.f.close()
-        
-    def __init__(self,main):
-        self.authenticator = main.getAuthenticator()
-        self.filename = tkinter.filedialog.askopenfilename()
-        self.f = open(self.filename)
 
 class AnnouncementI(IceFlix.Announcement):
     """Clase que implementa la interfaz Announcement para el topic Announcements"""
@@ -224,7 +227,7 @@ class ClientShell(cmd.Cmd):
         prompt: str = '(Off-line)'
         
         # ----- Opciones del menú del cliente ----- #
-        def do_login(self,arg):
+        def do_login(self,arg): # pylint: disable=invalid-name
             """Iniciar sesión como usuario o administrador"""
             if self.conexion is False:
                 print(f"{bcolors.FAIL}No se ha podido conectar con los servicios. Saliendo de IceFlix{bcolors.ENDC}")
@@ -233,7 +236,7 @@ class ClientShell(cmd.Cmd):
             
             print("¿Quieres iniciar sesión como usuario o administrador? Introduce 1 ó 2")
             print("1. Usuario\n2. Administrador")
-            opcion = get_opcion([1,2])
+            opcion = get_option([1,2])
                     
             # Login para usuario
             if opcion == 1:
@@ -259,16 +262,16 @@ class ClientShell(cmd.Cmd):
                     hilo.start()
                     hilo.join()
                 
-        def do_busquedaPorNombre(self,arg):
+        def do_busquedaPorNombre(self,arg): # pylint: disable=invalid-name
             """Opción para realizar una búsqueda por el catálogo introduciendo un nombre a buscar"""
             if self.conexion is False:
                 print(f"{bcolors.FAIL}No se ha podido conectar con los servicios.Saliendo de IceFlix...{bcolors.ENDC}")
                 self.broker.shutdown()
                 return 1
             else:
-                busqueda_por_nombres("",self.catalog)
+                name_search("",self.catalog)
             
-        def do_salir(self,arg):
+        def do_salir(self,arg): # pylint: disable=invalid-name
             """Opción para salir de la aplicación del cliente."""
             self.broker.shutdown()
             print(f"{bcolors.FAIL}Saliendo de IceFlix...{bcolors.ENDC}")
@@ -319,7 +322,7 @@ class AdminShell(cmd.Cmd):
 
         self.adapter_announcements.activate()
     # ----- Opciones del menú del administrador ----- #
-    def do_agregarUsuario(self,arg):
+    def do_agregarUsuario(self,arg): # pylint: disable=invalid-name
         """Añadir un usuario a la base de datos del programa."""
         if self.conexion is True:
             nombre_usuario = input("Introduce el nombre del usuario a añadir: ")
@@ -335,7 +338,7 @@ class AdminShell(cmd.Cmd):
         else:
             print(f"{bcolors.FAIL}No se puede añadir ningún usuario ya que no está el servicio authenticator.{bcolors.ENDC}")
         
-    def do_borrarUsuario(self,arg):
+    def do_borrarUsuario(self,arg): # pylint: disable=invalid-name
         """Eliminar un usuario de la base de datos del programa."""
         if self.conexion is True:
             nombre_usuario = input("Introduce el nombre del usuario a eliminar:")
@@ -348,7 +351,7 @@ class AdminShell(cmd.Cmd):
         else:
             print(f"{bcolors.FAIL}No se puede eliminar ningún usuario ya que no se ha podido conectar con los servicios.{bcolors.ENDC}")
             
-    def do_renombrarArchivo(self,arg):
+    def do_renombrarArchivo(self,arg): # pylint: disable=invalid-name
         """Renombrar un fichero del catálogo."""
         if self.conexion is True:
             nombre = input("Introduce el nombre del archivo a editar: ")
@@ -365,7 +368,7 @@ class AdminShell(cmd.Cmd):
         else:
             print(f"{bcolors.FAIL}No se puede renombrar ningún archivo ya que no se ha podido conectar con los servicios.{bcolors.ENDC}")
             
-    def do_eliminarArchivo(self,arg):
+    def do_eliminarArchivo(self,arg): # pylint: disable=invalid-name
         """Eliminar un fichero del catálogo."""
         if self.conexion is True:
             nombre = input("Introduce el nombre exacto del fichero a eliminar:")
@@ -378,7 +381,7 @@ class AdminShell(cmd.Cmd):
         else:
             print(f"{bcolors.FAIL}No se puede eliminar ningún archivo ya que no se ha podido conectar con los servicios.{bcolors.ENDC}")
     
-    def do_subirArchivo(self,arg):
+    def do_subirArchivo(self,arg): # pylint: disable=invalid-name
         """Subir un archivo al catálogo."""
         if self.conexion is True:
             try:
@@ -395,7 +398,7 @@ class AdminShell(cmd.Cmd):
         else:
             print(f"{bcolors.FAIL}No se puede subir ningún archivo ya que no se ha podido conectar con los servicios.{bcolors.ENDC}")
             
-    def do_cerrarSesion(self,arg):
+    def do_cerrarSesion(self,arg): # pylint: disable=invalid-name
         """Cerrar sesión como administrador."""
         print("Cerrando sesión del administrador...")
         self.adapter_announcements.destroy()
@@ -421,34 +424,34 @@ class NormalUserShell(cmd.Cmd):
     intro = '\nEscribe "help" ó "?" para listar las opciones.\nEscribe help <opcion> para obtener un resumen.'
     prompt: str = '(on-line)'
     
-    def do_realizarBusqueda(self,arg):
+    def do_realizarBusqueda(self,arg): # pylint: disable=invalid-name
         """Realizar una búsqueda de títulos por nombre o por tags."""
         if self.conexion is False:
             print(f"{bcolors.FAIL}No se puede realizar la búsqueda ya que no se ha podido conectar con los servicios.{bcolors.ENDC}")
             return 0
         print("Elije una opción (introduce un número 1 o 2).\n1. Búsqueda por nombre\n2. Búsqueda por tags")
-        opcion = get_opcion([1,2])
+        opcion = get_option([1,2])
         # Búsqueda por nombre
         if(opcion==1):
-            self.token_usuario = comprobar_token(self.nombre_usuario,self.hassed_pass,self.token_usuario,self.authenticator)
-            lista = busqueda_por_nombres(self.token_usuario,self.catalog)
+            self.token_usuario = validate_token(self.nombre_usuario,self.hassed_pass,self.token_usuario,self.authenticator)
+            lista = name_search(self.token_usuario,self.catalog)
         # Búsqueda por tag
         else:
-            lista = busqueda_por_tags(self.nombre_usuario, self.hassed_pass,self.token_usuario,self.authenticator,self.catalog) 
+            lista = search_by_tags(self.nombre_usuario, self.hassed_pass,self.token_usuario,self.authenticator,self.catalog) 
         if(len(lista) == 0):
                return 0
         # Obtener título de la lista obtenida
-        self.titulo = obtener_seleccion_usuario(lista,self.token_usuario,self.catalog)
+        self.titulo = get_user_selection(lista,self.token_usuario,self.catalog)
         media_id = self.catalog.getTilesByName(self.titulo,True)
         self.id_titulo = media_id[0]
-        self.token_usuario = comprobar_token(self.nombre_usuario,self.hassed_pass,self.token_usuario,self.authenticator)
+        self.token_usuario = validate_token(self.nombre_usuario,self.hassed_pass,self.token_usuario,self.authenticator)
         tags = get_tags(media_id[0],self.token_usuario,self.catalog)
         print("El título seleccionado ha sido",f"{bcolors.BOLD}",self.titulo, f"{bcolors.ENDC}con los tags -->", tags,"\n")
         print("¿Deseas añadir o eliminar tags? Introduce 1 ó 2:\n1. Añadir tags\n2. Eliminar tags. \n3 No quiero editar los tags.")
-        opcion = get_opcion([1,2,3])
+        opcion = get_option([1,2,3])
         # Añadir tags
         if(opcion == 1):
-           añadir_tags(self.titulo, self.token_usuario,self.nombre_usuario,self.hassed_pass,self.authenticator,self.catalog)
+           add_tags(self.titulo, self.token_usuario,self.nombre_usuario,self.hassed_pass,self.authenticator,self.catalog)
         # Eliminar tags
         elif (opcion == 2):
             if(len(tags) == 0):
@@ -459,26 +462,26 @@ class NormalUserShell(cmd.Cmd):
                 print("Escribe los tags que quieres eliminar a ", self.titulo, " separados por comas:",end=" ")
                 tags = input()
                 tags_list = (tags.replace(" ","")).split(',')
-                self.token_usuario = comprobar_token(self.nombre_usuario,self.hassed_pass,self.token_usuario,self.authenticator)
-                existen = tags_existen(tags_list,media_id[0],self.token_usuario,self.catalog)
+                self.token_usuario = validate_token(self.nombre_usuario,self.hassed_pass,self.token_usuario,self.authenticator)
+                existen = tags_exist(tags_list,media_id[0],self.token_usuario,self.catalog)
                 if tags == "":
                     print("\nNo se ha añadido ningún tag.")
                     break
                 elif existen is True:
-                    self.token_usuario = comprobar_token(self.nombre_usuario,self.hassed_pass,self.token_usuario,self.authenticator)
+                    self.token_usuario = validate_token(self.nombre_usuario,self.hassed_pass,self.token_usuario,self.authenticator)
                     self.catalog.removeTags(media_id[0],tags_list, self.token_usuario)
                     print(f"{bcolors.OKCYAN}Se han eliminado los tags.\n{bcolors.ENDC}")
         else:
             print(f"{bcolors.OKCYAN}No se ha editado ningún tag.\n{bcolors.ENDC}")
         return 0
        
-    def do_realizarDescarga(self,arg):
+    def do_realizarDescarga(self,arg): # pylint: disable=invalid-name
         """Descargar un archivo una vez seleccionado un título anteriormente."""
         if self.conexion is True:
             if(self.titulo == ""):
                 print(f"{bcolors.FAIL}No tienes ningún título seleccionado. /Debes realizar una búsqueda y seleccionar un título.\n{bcolors.ENDC}")
             else:
-                self.token_usuario = comprobar_token(self.nombre_usuario,self.hassed_pass,self.token_usuario,self.authenticator)
+                self.token_usuario = validate_token(self.nombre_usuario,self.hassed_pass,self.token_usuario,self.authenticator)
                 file_handler = self.file_service.openFile(self.id_titulo,self.token_usuario)
                 with open("archivo", "wb") as file_descriptor:
                     while True:
@@ -487,13 +490,13 @@ class NormalUserShell(cmd.Cmd):
                             if len(recibido) == 0:
                                 break
                         except IceFlix.Unauthorized:
-                            self.token_usuario = comprobar_token(self.nombre_usuario,self.hassed_pass,self.token_usuario,self.authenticator)
+                            self.token_usuario = validate_token(self.nombre_usuario,self.hassed_pass,self.token_usuario,self.authenticator)
                         file_descriptor.write(recibido)
                 file_handler.close()
         else:
             print(f"{bcolors.FAIL}No se puede subir descargar ningún archivo ya que no se ha podido conectar con los servicios.{bcolors.ENDC}")
             
-    def do_cerrarSesion(self,arg):
+    def do_cerrarSesion(self,arg): # pylint: disable=invalid-name
         """Cerrar sesión en el usuario"""
         print("Cerrando sesión de", self.nombre_usuario,"\n")
         return 1
