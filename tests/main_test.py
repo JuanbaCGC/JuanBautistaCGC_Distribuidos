@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+import time
 import Ice
 Ice.loadSlice('iceflix.ice')
 import IceFlix
@@ -23,6 +24,10 @@ class Main(IceFlix.Main):
     def getCatalog(self, current):  # pylint:disable=invalid-name, unused-argument
         "Return the stored MediaCatalog proxy."
         # TODO: implement
+        return None
+
+    def getFileService(self, current):
+        "Return the stored FileService proxy"
         return None
 
     def newService(self, proxy, service_id, current):  # pylint:disable=invalid-name, unused-argument
@@ -60,6 +65,7 @@ class ServerMain(Ice.Application):
 
         adapter.activate()
         self.shutdownOnInterrupt()
+        time.sleep(5)
         broker.shutdown()
         return 0
 

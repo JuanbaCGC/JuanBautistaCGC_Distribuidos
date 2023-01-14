@@ -12,6 +12,7 @@ import sys
 import getpass
 import threading
 from threading import Thread
+import time
 import tkinter.filedialog
 import Ice
 import IceFlix
@@ -632,10 +633,20 @@ class Client(Ice.Application):
     # ----- Clase Cliente ----- #
 
     def run(self, args):
+        MAX_ATTEMPTS = 5
+        attempts = 0
         broker = self.communicator()
-
-        proxy = broker.stringToProxy("IceStorm/TopicManager:tcp -p 10000")
-        topic_manager = IceStorm.TopicManagerPrx.checkedCast(proxy)
+        while attempts < MAX_ATTEMPTS:
+            try:
+                proxy = broker.stringToProxy("IceStorm/TopicManager:tcp -p 10000")
+                topic_manager = IceStorm.TopicManagerPrx.checkedCast(proxy)
+                break
+            except Ice.ConnectionRefusedException:
+                print(f"{Colors.FAIL}Error de conexión al Topic Manager, intentando de nuevo en 5 segundos...{Colors.ENDC}")
+                time.sleep(5)
+                attempts += 1
+        else:
+            raise RuntimeError(f'{Colors.FAIL}No se ha podido conectar al Topic Manager en {MAX_ATTEMPTS} intentos{Colors.ENDC}')
 
         announcement_topic = topic_manager.retrieve("Announcements")
         announcement_servant = AnnouncementI(True)
