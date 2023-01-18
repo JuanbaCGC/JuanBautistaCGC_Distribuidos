@@ -44,11 +44,18 @@ all: install icestorm client
 ```
 
 ## Ejecución
-Para la ejecución del cliente, como ya he explicado, hay que realizar::
+Para la ejecución del cliente, como ya he explicado, hay que abrir dos terminales, con un entorno virtual en cada una. En el primer terminal hacer:
 ```bash
-make client
+make all
 ```
-Y se lanzará el cliente y quedará a la espera del anunciamiento de un Main. Si este anunciamiento no llega en 60 segundos, se acabará la ejecución del programa.
+En el otro: 
+```bash
+make install
+make run-test
+```
+
+En el terminal que lanzaremos make all, se lanzará el cliente que quedará a la espera del anunciamiento de un Main. Si este anunciamiento no llega en 60 segundos, se acabará la ejecución del programa. Por otro lado, en el otro terminal, se lanzarán los tests.
+
 ## Uso
 Una vez ejecutado el cliente y se haya conectado con el Main, veremos el menú principal. Para listar las opciones del menú, basta con introducir "?". Estas opciones son:
 
