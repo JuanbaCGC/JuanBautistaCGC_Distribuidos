@@ -20,4 +20,4 @@ clean:
 	icestormadmin --Ice.Config=configs/icestorm.config -e "destroy CatalogUpdates"
 	icestormadmin --Ice.Config=configs/icestorm.config -e "destroy FileAvailabilityAnnounces"
 
-all: install icestorm client
+all-client: install client
