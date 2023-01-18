@@ -47,12 +47,15 @@ all-client: install client
 ## Ejecución
 Para la ejecución del cliente, como ya he explicado, hay que abrir dos terminales, con un entorno virtual en cada una. En el primer terminal hacer:
 ```bash
-make client
-```
-En el otro: 
-```bash
 make install
 make icestorm
+```
+En el otro, mientras tanto hacemos: 
+```bash
+make client
+```
+Para acabar con ejectuar también en el primer terminal:
+```bash
 make run-test
 ```
 
