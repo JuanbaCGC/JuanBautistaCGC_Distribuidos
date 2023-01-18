@@ -52,14 +52,14 @@ make icestorm
 ```
 En el otro, mientras tanto hacemos: 
 ```bash
-make client
+make all-client
 ```
 Para acabar con ejectuar también en el primer terminal:
 ```bash
 make run-test
 ```
 
-En el terminal que lanzaremos make client, se lanzará el cliente que quedará a la espera del anunciamiento de un Main. Si este anunciamiento no llega en 60 segundos, se acabará la ejecución del programa. Por otro lado, en el otro terminal, se lanzarán los tests.
+En el terminal que lanzaremos make all-client, se lanzará el cliente que quedará a la espera del anunciamiento de un Main. Si este anunciamiento no llega en 60 segundos, se acabará la ejecución del programa. Por otro lado, en el otro terminal, se lanzarán los tests.
 
 ## Uso
 Una vez ejecutado el cliente y se haya conectado con el Main, veremos el menú principal. Para listar las opciones del menú, basta con introducir "?". Estas opciones son:
