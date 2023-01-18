@@ -14,7 +14,7 @@ Una vez realizado este paso, estando en la carpeta raíz del directorio, tenemos
 * ***run-test:*** se lanzan los test que se han creado para comprobar que los diferentes eventos de los topics son captados correctamente. Se corre un test.sh en el que se lanzan eventos en los diferentes topics.
 * ***client:*** se lanza la ejecución del cliente.
 * ***clean:*** al igual que icestorm crea los topics, clean los destruye.
-* ***all:*** realiza varias operaciones: se instalan primero las dependencias, luego se lanza IceStorm y finalmente se lanza el cliente.
+* ***all-client:*** realiza todas las operaciones necesarias para lanzar el cliente en un terminal: se instalan primero las dependencias y finalmente se ejecuta el cliente.
 
 El contenido del Makefile es:
 ```Makefile
