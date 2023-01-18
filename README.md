@@ -40,21 +40,23 @@ clean:
 	icestormadmin --Ice.Config=configs/icestorm.config -e "destroy CatalogUpdates"
 	icestormadmin --Ice.Config=configs/icestorm.config -e "destroy FileAvailabilityAnnounces"
 
-all: install icestorm client
+all-client: install client
+
 ```
 
 ## Ejecución
 Para la ejecución del cliente, como ya he explicado, hay que abrir dos terminales, con un entorno virtual en cada una. En el primer terminal hacer:
 ```bash
-make all
+make client
 ```
 En el otro: 
 ```bash
 make install
+make icestorm
 make run-test
 ```
 
-En el terminal que lanzaremos make all, se lanzará el cliente que quedará a la espera del anunciamiento de un Main. Si este anunciamiento no llega en 60 segundos, se acabará la ejecución del programa. Por otro lado, en el otro terminal, se lanzarán los tests.
+En el terminal que lanzaremos make client, se lanzará el cliente que quedará a la espera del anunciamiento de un Main. Si este anunciamiento no llega en 60 segundos, se acabará la ejecución del programa. Por otro lado, en el otro terminal, se lanzarán los tests.
 
 ## Uso
 Una vez ejecutado el cliente y se haya conectado con el Main, veremos el menú principal. Para listar las opciones del menú, basta con introducir "?". Estas opciones son:
