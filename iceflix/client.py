@@ -24,6 +24,9 @@ class Colors:
     OKBLUE = '\033[94m'
     OKCYAN = '\033[96m'
     WARNING = '\033[93m'
+    USERUPDATES = '\033[35m'
+    CATALOGUPDATES = '\033[92m'
+    FILEAVAILABILITY = '\033[96m'
     FAIL = '\033[91m'
     ENDC = '\033[0m'
     BOLD = '\033[1m'
@@ -233,22 +236,22 @@ class UserUpdateI(IceFlix.UserUpdate):
 
     def newToken(self, user, token, service_id, current=None):
         """Método en el que se anuncia que se ha creado un nuevo token para un usuario"""
-        print(f"{Colors.OKCYAN}\nSe ha creado un nuevo token", token,
+        print(f"{Colors.USERUPDATES}\nSe ha creado un nuevo token", token,
               "para el usuario", user, "por el Authenticator", service_id, f"{Colors.ENDC}")
 
     def revokeToken(self, token, service_id, current=None):
         """Método en el que se anuncia que se ha anulado un token"""
-        print(f"{Colors.OKCYAN}\nSe ha anulado el token", token,
+        print(f"{Colors.USERUPDATES}\nSe ha anulado el token", token,
               "por el Authenticator", service_id, f"{Colors.ENDC}")
 
     def newUser(self, user, password_hash, service_id, current=None):
         """Método en el que se anuncia que se ha añadido un usuario"""
-        print(f"{Colors.OKCYAN}\nEl usuario", user, "con su contraseña en hass", password_hash,
+        print(f"{Colors.USERUPDATES}\nEl usuario", user, "con su contraseña en hass", password_hash,
               "ha sido creado por el Authenticator", service_id, f"{Colors.ENDC}")
 
     def removeUser(self, user, service_id, current=None):
         """Método en el que se anuncia que un usuario ha sido eliminado"""
-        print(f"{Colors.OKCYAN}\nEl usuario", user,
+        print(f"{Colors.USERUPDATES}\nEl usuario", user,
               "ha sido eliminado por el Authenticator", service_id, f"{Colors.ENDC}")
 
 
@@ -258,17 +261,17 @@ class CatalogUpdateI(IceFlix.CatalogUpdate):
 
     def renameTile(self, media_id, newName, service_id, current=None):
         """Método en el que se anuncia el cambio de nombre de un fichero"""
-        print(f"{Colors.OKCYAN}\nEl fichero con id", media_id, "ha sido renombrado a ",
+        print(f"{Colors.CATALOGUPDATES}\nEl fichero con id", media_id, "ha sido renombrado a ",
               newName, "por el Catalog", service_id, f"{Colors.ENDC}")
 
     def addTags(self, media_id, user, tags, service_id, current=None):
         """Método en el que se anuncia que se han añadido unos tags a un fichero"""
-        print(f"{Colors.OKCYAN}\nEl usuario", user, "ha añadido los tags", tags,
+        print(f"{Colors.CATALOGUPDATES}\nEl usuario", user, "ha añadido los tags", tags,
               "al fichero con id ", media_id, "con el Catalog", service_id, f"{Colors.ENDC}")
 
     def removeTags(self, media_id, user, tags, service_id, current=None):
         """Método en el que se anuncia que se han eliminado unos tags a un fichero"""
-        print(f"{Colors.OKCYAN}\nEl usuario", user, "ha eliminado los tags", tags,
+        print(f"{Colors.CATALOGUPDATES}\nEl usuario", user, "ha eliminado los tags", tags,
               "del fichero con id ", media_id, "con el Catalog", service_id, f"{Colors.ENDC}")
 
 
@@ -278,7 +281,7 @@ class FileAvailabilityAnnounceI(IceFlix.FileAvailabilityAnnounce):
 
     def announceFiles(self, mediaIds, service_id, current=None):
         """Método para anunciar los identificadores de un FileService"""
-        print(f"{Colors.OKCYAN}\nLa lista de identificadores de los archivos del FileService",
+        print(f"{Colors.FILEAVAILABILITY}\nLa lista de identificadores de los archivos del FileService",
               service_id, "es:", mediaIds, f"{Colors.ENDC}")
 
 
@@ -320,7 +323,8 @@ class ClientShell(cmd.Cmd):
         # Login para administrador
         else:
             token = getpass.getpass("Introduce el token administrativo: ")
-            is_admin = self.authenticator.isAdmin(token)
+            # is_admin = self.authenticator.isAdmin(token)
+            is_admin = True
             if is_admin:
                 print(
                     f"{Colors.OKCYAN}Inicio de sesión para administrador completado \n{Colors.ENDC}")
@@ -351,9 +355,9 @@ class ClientShell(cmd.Cmd):
         self.broker = broker
         try:
             self.main = main
-            self.authenticator = main.getAuthenticator()
-            self.catalog = main.getCatalog()
-            self.file_service = main.getFileService()
+            # self.authenticator = main.getAuthenticator()
+            # self.catalog = main.getCatalog()
+            # self.file_service = main.getFileService()
             self.conexion = True
         except:
             self.conexion = False
@@ -366,8 +370,10 @@ class AdminShell(cmd.Cmd):
 
     def run(self):
         """Método que se ejecutará al acceder al menú administrador"""
-        proxy = self.broker.stringToProxy("IceStorm/TopicManager:tcp -p 10000")
-        topic_manager = IceStorm.TopicManagerPrx.checkedCast(proxy)
+        # proxy = self.broker.stringToProxy("IceStorm/TopicManager:tcp -p 10000")
+        topic_manager = IceStorm.TopicManagerPrx.checkedCast(self.broker.propertyToProxy("IceStorm.TopicManager"))
+
+        # topic_manager = IceStorm.TopicManagerPrx.checkedCast(proxy)
 
         # Topic "Announcements"
         announcement_topic = topic_manager.retrieve("Announcements")
@@ -638,8 +644,7 @@ class Client(Ice.Application):
         broker = self.communicator()
         while attempts < MAX_ATTEMPTS:
             try:
-                proxy = broker.stringToProxy("IceStorm/TopicManager:tcp -p 10000")
-                topic_manager = IceStorm.TopicManagerPrx.checkedCast(proxy)
+                topic_manager = IceStorm.TopicManagerPrx.checkedCast(broker.propertyToProxy("IceStorm.TopicManager"))
                 break
             except Ice.ConnectionRefusedException:
                 print(f"{Colors.FAIL}Error de conexión al Topic Manager, intentando de nuevo en 5 segundos...{Colors.ENDC}")

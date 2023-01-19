@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+import time
 import Ice
 Ice.loadSlice('iceflix.ice')
 import IceFlix
@@ -24,10 +25,7 @@ class ServerMain(Ice.Application):
         proxy = adapter.add(servant, broker.stringToIdentity("auth1"))
 
 
-        topic_manager_str_proxy = "IceStorm/TopicManager -t:tcp -h localhost -p 10000"
-        topic_manager = IceStorm.TopicManagerPrx.checkedCast(
-            self.communicator().stringToProxy(topic_manager_str_proxy),
-        )
+        topic_manager = IceStorm.TopicManagerPrx.checkedCast(broker.propertyToProxy("IceStorm.TopicManager"))
         topicPrx = topic_manager.retrieve('UserUpdates')
         
         pub = topicPrx.getPublisher()
@@ -39,9 +37,12 @@ class ServerMain(Ice.Application):
         announcement.newUser("JUANBA","12345",str(uuid.uuid4()))
         announcement.newToken("JUANBA","LJLKSJDFLKAJSLKDFJLAKSJFI4UROWJE",str(uuid.uuid4()))
         announcement.revokeToken("lsjLFJKASLK", str(uuid.uuid4()))
+        time.sleep(5)
         adapter.activate()
+        
         self.shutdownOnInterrupt()
-        broker.shutdown()
+        self._communicator.destroy()
+        broker.waitForShutdown()
         return 0
 
 if __name__ == '__main__':

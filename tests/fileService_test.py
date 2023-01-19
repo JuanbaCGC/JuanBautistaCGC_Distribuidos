@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+import time
 import Ice
 Ice.loadSlice('iceflix.ice')
 import IceFlix
@@ -23,11 +24,7 @@ class ServerMain(Ice.Application):
         
         proxy = adapter.add(servant, broker.stringToIdentity("file1"))
 
-
-        topic_manager_str_proxy = "IceStorm/TopicManager -t:tcp -h localhost -p 10000"
-        topic_manager = IceStorm.TopicManagerPrx.checkedCast(
-            self.communicator().stringToProxy(topic_manager_str_proxy),
-        )
+        topic_manager = IceStorm.TopicManagerPrx.checkedCast(broker.propertyToProxy("IceStorm.TopicManager"))
         topicPrx = topic_manager.retrieve('FileAvailabilityAnnounces')
         
         pub = topicPrx.getPublisher()
@@ -38,8 +35,10 @@ class ServerMain(Ice.Application):
         
         announcement.announceFiles([str(uuid.uuid4()),"lasjdlsjlkjf","123456789"], str(uuid.uuid4()))
         adapter.activate()
+        time.sleep(5)
         self.shutdownOnInterrupt()
-        broker.shutdown()
+        self._communicator.destroy()
+        broker.waitForShutdown()
         return 0
 
 if __name__ == '__main__':
