@@ -82,7 +82,17 @@ Dependiendo de qué forma se inicia sesión, el siguiente menú será de una for
     * *cerrarSesión:* el administrador podrá cerrar su sesión para volver al menú principal.
 
 Destacar que en el menú administrador, cuando llegue cualquier evento a los topics: Announcements, UserUpdates, CatalogUpdates ó FileAvailabilityAnnounces, se verá por pantalla la descripción del evento ocurrido.
- 
+
+### Puntos extra
+En cuanto a los puntos extra, se ha realizado la práctica de manera que obtiene un 9,03 de nota con la herramienta pylint. Para comprobarlo, se tiene que tener instalado Pylint, por lo que se debe de hacer:
+```bash
+pip3 install pylint
+```
+Y una vez instalado, ejecutar en el repositorio raíz del proyecto:
+```bash
+pylint --max-line-length=125 --rcfile=configs/client.config iceflix/client.py
+```
+Además, como he explicado anteriormente, el proyecto es instalable con pip install.
 #### Nota
 En los diferentes menús, se puede hacer uso del tabulador para completar la opción a introducir. Es decir, si estando en el menú principal se introduce:
 ```bash
