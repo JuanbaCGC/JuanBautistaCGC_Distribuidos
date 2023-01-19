@@ -665,7 +665,7 @@ class Client(Ice.Application):
         announcement_proxy = adapter.addWithUUID(announcement_servant)
 
         announcement_topic.subscribeAndGetPublisher({}, announcement_proxy)
-        print("Esperando a recibir mains del topic Announcements")
+        print("Esperando a recibir algún main en el topic Announcements")
         if not announcement_servant.event.wait(timeout=60):
             raise RuntimeError(
                 f'{Colors.FAIL}No se ha encontrado ningún main en 60 segundos{Colors.ENDC}')
