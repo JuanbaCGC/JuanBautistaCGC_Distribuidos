@@ -1,11 +1,6 @@
 #! /usr/bin/env python
 # -- coding: utf-8 --
 
-# errores en los nombres de las interfaces de Ice y sus métodos --> pylint: disable=invalid-name
-# errores de los imports --> pylint: disable=import-error
-# errores al usar métodos de IceStorm --> pylint: disable=no-member
-# line too long --> pylint: disable=line-too-long
-
 import cmd
 import hashlib
 import sys
@@ -14,9 +9,9 @@ import threading
 from threading import Thread
 import time
 import tkinter.filedialog
-import Ice
-import IceFlix
-import IceStorm
+import Ice # pylint: disable=import-error
+import IceFlix # pylint: disable=import-error
+import IceStorm # pylint: disable=import-error
 
 
 class Colors:
@@ -24,9 +19,9 @@ class Colors:
     OKBLUE = '\033[94m'
     OKCYAN = '\033[96m'
     WARNING = '\033[93m'
-    USERUPDATES = '\033[35m'
-    CATALOGUPDATES = '\033[92m'
-    FILEAVAILABILITY = '\033[96m'
+    PURPLE = '\033[35m'
+    GREEN = '\033[92m'
+    WHITE = '\033[97m'
     FAIL = '\033[91m'
     ENDC = '\033[0m'
     BOLD = '\033[1m'
@@ -112,13 +107,14 @@ def get_tags(media_id, user_token, catalog):
 
 def name_search(user_token, catalog):
     """Método para realizar una búsqueda en el catálogo por nombre"""
-    opcion = input(
+    option = input(
         "¿Desea realizar una búsqueda exacta del nombre? Introduzca SI/NO ó si/no: ").lower()
-    while opcion != "si" and opcion != "no":
-        opcion = input(
-            "Opción no válida. ¿Desea realizar una búsqueda exacta del nombre? Introduzca SI/NO ó si/no: ").lower()
+    while option not in ('si', 'no'):
+        option = input(
+            "Opción no válida. ¿Desea realizar una búsqueda exacta del nombre? "
+            "Introduzca SI/NO ó si/no: ").lower()
     name = input("Introduce la palabra a buscar: ")
-    results_list = catalog.getTilesByName(name, opcion == "si")
+    results_list = catalog.getTilesByName(name, option == "si")
     if len(results_list) == 0:
         print("No se han encontrado resultados en la búsqueda.")
     elif user_token == "":
@@ -132,7 +128,7 @@ def search_by_tags(username, hashed_password, user_token, authenticator, catalog
     """Método para realizar una búsqueda por tags"""
     prompt = "¿Desea realizar una búsqueda exacta de los tags? Introduzca SI/NO ó si/no: "
     option = input(prompt).lower()
-    while option != "si" and option != "no":
+    while option not in ('si', 'no'):
         option = input("Opción no válida. " + prompt).lower()
     tag_list = input("Introduce los tags separados por comas: ")
     tag_list = (tag_list.replace(" ", "")).split(",")
@@ -185,18 +181,17 @@ class Uploader(IceFlix.FileUploader):
         """Método constructor de la clase Uploader"""
         self.authenticator = main.get_authenticator()
         self.filename = tkinter.filedialog.askopenfilename()
-        self.f = open(self.filename)
+        self.f_open = open(self.filename)
 
     def receive(self, size):
         """Método para recibir los bytes del fichero a descargar"""
-        return self.f.read(size)
+        return self.f_open.read(size)
 
     def close(self, user_token):
         """Método para terminar la transferencia"""
         if self.authenticator.is_admin(user_token):
-            self.f.close()
+            self.f_open.close()
 
-# errores al no usar current --> pylint: disable=unused-argument
 class AnnouncementI(IceFlix.Announcement):
     """Clase que implementa la interfaz Announcement para el topic Announcements"""
 
@@ -207,8 +202,8 @@ class AnnouncementI(IceFlix.Announcement):
         self.main = None
         self.event = threading.Event()
 
-    def announce(self, service, srv_id, current=None):
-        """Método para obtener o bien el main para conectarse a el o los anunciamientos de todos los servicios"""
+    def announce(self, service, srv_id, current=None): # pylint: disable=unused-argument
+        """Método para obtener el main u obtener anunciamientos"""
         if self.search_main is True:
             if service.ice_isA('::IceFlix::Main'):
                 self.main = IceFlix.MainPrx.uncheckedCast(service)
@@ -230,64 +225,63 @@ class AnnouncementI(IceFlix.Announcement):
                 print(f"{Colors.OKCYAN}\nNuevo FileService anunciado:",
                       service, ", id:", srv_id, f"{Colors.ENDC}")
 
-# errores al no usar current --> pylint: disable=unused-argument
+
 class UserUpdateI(IceFlix.UserUpdate):
     """Clase que implementa la interfaz UserUpdate"""
 
-    def newToken(self, user, token, service_id, current=None):
+    def newToken(self, user, token, service_id, current=None): # pylint: disable=invalid-name,unused-argument
         """Método en el que se anuncia que se ha creado un nuevo token para un usuario"""
-        print(f"{Colors.USERUPDATES}\nSe ha creado un nuevo token", token,
+        print(f"{Colors.PURPLE}\nSe ha creado un nuevo token", token,
               "para el usuario", user, "por el Authenticator", service_id, f"{Colors.ENDC}")
 
-    def revokeToken(self, token, service_id, current=None):
+    def revokeToken(self, token, service_id, current=None): # pylint: disable=invalid-name,unused-argument
         """Método en el que se anuncia que se ha anulado un token"""
-        print(f"{Colors.USERUPDATES}\nSe ha anulado el token", token,
+        print(f"{Colors.PURPLE}\nSe ha anulado el token", token,
               "por el Authenticator", service_id, f"{Colors.ENDC}")
 
-    def newUser(self, user, password_hash, service_id, current=None):
+    def newUser(self, user, password_hash, service_id, current=None): # pylint: disable=invalid-name,unused-argument
         """Método en el que se anuncia que se ha añadido un usuario"""
-        print(f"{Colors.USERUPDATES}\nEl usuario", user, "con su contraseña en hass", password_hash,
+        print(f"{Colors.PURPLE}\nEl usuario", user, "con su contraseña en hass", password_hash,
               "ha sido creado por el Authenticator", service_id, f"{Colors.ENDC}")
 
-    def removeUser(self, user, service_id, current=None):
+    def removeUser(self, user, service_id, current=None): # pylint: disable=invalid-name,unused-argument
         """Método en el que se anuncia que un usuario ha sido eliminado"""
-        print(f"{Colors.USERUPDATES}\nEl usuario", user,
+        print(f"{Colors.PURPLE}\nEl usuario", user,
               "ha sido eliminado por el Authenticator", service_id, f"{Colors.ENDC}")
 
 
-# errores al no usar current --> pylint: disable=unused-argument
 class CatalogUpdateI(IceFlix.CatalogUpdate):
     """Clase que implementa la interfaz CatalogUpdate para el topic CatalogUpdates"""
 
-    def renameTile(self, media_id, newName, service_id, current=None):
+    def renameTile(self, media_id, newName, service_id, current=None): # pylint: disable=invalid-name,unused-argument
         """Método en el que se anuncia el cambio de nombre de un fichero"""
-        print(f"{Colors.CATALOGUPDATES}\nEl fichero con id", media_id, "ha sido renombrado a ",
+        print(f"{Colors.GREEN}\nEl fichero con id", media_id, "ha sido renombrado a ",
               newName, "por el Catalog", service_id, f"{Colors.ENDC}")
 
-    def addTags(self, media_id, user, tags, service_id, current=None):
+    def addTags(self, media_id, user, tags, service_id, current=None): # pylint: disable=invalid-name,unused-argument
         """Método en el que se anuncia que se han añadido unos tags a un fichero"""
-        print(f"{Colors.CATALOGUPDATES}\nEl usuario", user, "ha añadido los tags", tags,
+        print(f"{Colors.GREEN}\nEl usuario", user, "ha añadido los tags", tags,
               "al fichero con id ", media_id, "con el Catalog", service_id, f"{Colors.ENDC}")
 
-    def removeTags(self, media_id, user, tags, service_id, current=None):
+    def removeTags(self, media_id, user, tags, service_id, current=None): # pylint: disable=invalid-name,unused-argument
         """Método en el que se anuncia que se han eliminado unos tags a un fichero"""
-        print(f"{Colors.CATALOGUPDATES}\nEl usuario", user, "ha eliminado los tags", tags,
+        print(f"{Colors.GREEN}\nEl usuario", user, "ha eliminado los tags", tags,
               "del fichero con id ", media_id, "con el Catalog", service_id, f"{Colors.ENDC}")
 
 
-# errores al no usar current --> pylint: disable=unused-argument
 class FileAvailabilityAnnounceI(IceFlix.FileAvailabilityAnnounce):
-    """Clase que implementa la interfaz FileAvailabilityAnnounce para el topic FileAvailabilityAnnounces"""
+    """Clase que implementa la interfaz FileAvailabilityAnnounce"""
 
-    def announceFiles(self, mediaIds, service_id, current=None):
+    def announceFiles(self, media_ids, service_id, current=None): # pylint: disable=invalid-name,unused-argument
         """Método para anunciar los identificadores de un FileService"""
-        print(f"{Colors.FILEAVAILABILITY}\nLa lista de identificadores de los archivos del FileService",
-              service_id, "es:", mediaIds, f"{Colors.ENDC}")
+        print(f"{Colors.WHITE}\nLa lista de identificadores de los archivos del FileService",
+              service_id, "es:", media_ids, f"{Colors.ENDC}")
 
 
 class ClientShell(cmd.Cmd):
     """Clase que implementa el menú de un usuario no logeado"""
-    intro = 'Bienvenido al IceFlix menu. Escribe "help" ó "?" para listar las opciones.\nEscribe help <opcion> para obtener un resumen.'
+    intro = """Bienvenido al IceFlix menu. Escribe "help" ó "?" para listar las opciones.
+Escribe help <opcion> para obtener un resumen."""
     prompt: str = '(Off-line)'
 
     # ----- Opciones del menú del cliente ----- #
@@ -295,7 +289,8 @@ class ClientShell(cmd.Cmd):
         """Iniciar sesión como usuario o administrador"""
         if self.conexion is False:
             print(
-                f"{Colors.FAIL}No se ha podido conectar con los servicios. Saliendo de IceFlix{Colors.ENDC}")
+                f"{Colors.FAIL}No se ha podido conectar con los servicios."
+                f"Saliendo de IceFlix{Colors.ENDC}")
             self.broker.shutdown()
             return 1
 
@@ -323,8 +318,7 @@ class ClientShell(cmd.Cmd):
         # Login para administrador
         else:
             token = getpass.getpass("Introduce el token administrativo: ")
-            # is_admin = self.authenticator.isAdmin(token)
-            is_admin = True
+            is_admin = self.authenticator.isAdmin(token)
             if is_admin:
                 print(
                     f"{Colors.OKCYAN}Inicio de sesión para administrador completado \n{Colors.ENDC}")
@@ -340,9 +334,8 @@ class ClientShell(cmd.Cmd):
                 f"{Colors.FAIL}No se ha podido conectar con los servicios.Saliendo de IceFlix...{Colors.ENDC}")
             self.broker.shutdown()
             return 1
-        else:
-            name_search("", self.catalog)
-            return 0
+        name_search("", self.catalog)
+        return 0
 
     def do_salir(self, arg):
         """Opción para salir de la aplicación del cliente."""
@@ -355,9 +348,9 @@ class ClientShell(cmd.Cmd):
         self.broker = broker
         try:
             self.main = main
-            # self.authenticator = main.getAuthenticator()
-            # self.catalog = main.getCatalog()
-            # self.file_service = main.getFileService()
+            self.authenticator = main.getAuthenticator()
+            self.catalog = main.getCatalog()
+            self.file_service = main.getFileService()
             self.conexion = True
         except:
             self.conexion = False
@@ -365,15 +358,13 @@ class ClientShell(cmd.Cmd):
 
 class AdminShell(cmd.Cmd):
     """Clase que implementa el menú del administrador"""
-    intro = 'Menu de administrador. Escribe "help" ó "?" para listar las opciones.\nEscribe help <opcion> para obtener un resumen.'
+    intro = """Menu de administrador. Escribe "help" ó "?" para listar las opciones.
+Escribe help <opcion> para obtener un resumen."""
     prompt: str = '(Admin on-line)'
 
     def run(self):
         """Método que se ejecutará al acceder al menú administrador"""
-        # proxy = self.broker.stringToProxy("IceStorm/TopicManager:tcp -p 10000")
         topic_manager = IceStorm.TopicManagerPrx.checkedCast(self.broker.propertyToProxy("IceStorm.TopicManager"))
-
-        # topic_manager = IceStorm.TopicManagerPrx.checkedCast(proxy)
 
         # Topic "Announcements"
         announcement_topic = topic_manager.retrieve("Announcements")
@@ -406,8 +397,8 @@ class AdminShell(cmd.Cmd):
             {}, file_availability_proxy)
 
         self.adapter_announcements.activate()
-    # ----- Opciones del menú del administrador ----- #
 
+    # ----- Opciones del menú del administrador ----- #
     def do_agregar_usuario(self, arg):
         """Añadir un usuario a la base de datos del programa."""
         if self.conexion is True:
@@ -442,7 +433,8 @@ class AdminShell(cmd.Cmd):
             except IceFlix.TemporaryUnavailable:
                 print(f"{Colors.FAIL}No se ha podido realizar esta acción.")
         else:
-            print(f"{Colors.FAIL}No se puede eliminar ningún usuario ya que no se ha podido conectar con los servicios.{Colors.ENDC}")
+            print(f"{Colors.FAIL}No se puede eliminar ningún usuario ya que "
+            f"no se ha podido conectar con los servicios.{Colors.ENDC}")
 
     def do_renombrar_archivo(self, arg):
         """Renombrar un fichero del catálogo."""
@@ -462,7 +454,8 @@ class AdminShell(cmd.Cmd):
                 except:
                     print(f"{Colors.FAIL}Error con el catalog.{Colors.ENDC}")
         else:
-            print(f"{Colors.FAIL}No se puede renombrar ningún archivo ya que no se ha podido conectar con los servicios.{Colors.ENDC}")
+            print(f"{Colors.FAIL}No se puede renombrar ningún archivo ya que "
+            f"no se ha podido conectar con los servicios.{Colors.ENDC}")
 
     def do_eliminar_archivo(self, arg):
         """Eliminar un fichero del catálogo."""
@@ -476,7 +469,8 @@ class AdminShell(cmd.Cmd):
                 # self.catalog.removeMedia(lista[0],self.file_service)
                 self.file_service.removeFile(lista[0], self.admin_token)
         else:
-            print(f"{Colors.FAIL}No se puede eliminar ningún archivo ya que no se ha podido conectar con los servicios.{Colors.ENDC}")
+            print(f"{Colors.FAIL}No se puede eliminar ningún archivo ya que "
+            f"no se ha podido conectar con los servicios.{Colors.ENDC}")
 
     def do_subir_archivo(self, arg):
         """Subir un archivo al catálogo."""
@@ -494,7 +488,8 @@ class AdminShell(cmd.Cmd):
                 sys.stdout.flush()
                 adapter.activate()
         else:
-            print(f"{Colors.FAIL}No se puede subir ningún archivo ya que no se ha podido conectar con los servicios.{Colors.ENDC}")
+            print(f"{Colors.FAIL}No se puede subir ningún archivo ya que "
+            f"no se ha podido conectar con los servicios.{Colors.ENDC}")
 
     def do_cerrar_sesion(self, arg):
         """Cerrar sesión como administrador."""
@@ -526,7 +521,8 @@ class NormalUserShell(cmd.Cmd):
     def do_realizar_busqueda(self, arg):
         """Realizar una búsqueda de títulos por nombre o por tags."""
         if self.conexion is False:
-            print(f"{Colors.FAIL}No se puede realizar la búsqueda ya que no se ha podido conectar con los servicios.{Colors.ENDC}")
+            print(f"{Colors.FAIL}No se puede realizar la búsqueda ya "
+            f"que no se ha podido conectar con los servicios.{Colors.ENDC}")
             return 0
         print("Elije una opción (introduce un número 1 o 2).\n1. Búsqueda por nombre\n2. Búsqueda por tags")
         opcion = get_option([1, 2])
@@ -551,7 +547,8 @@ class NormalUserShell(cmd.Cmd):
         tags = get_tags(media_id[0], self.token_usuario, self.catalog)
         print("El título seleccionado ha sido",
               f"{Colors.BOLD}", self.titulo, f"{Colors.ENDC}con los tags -->", tags, "\n")
-        print("¿Deseas añadir o eliminar tags? Introduce 1 ó 2:\n1. Añadir tags\n2. Eliminar tags. \n3 No quiero editar los tags.")
+        print("¿Deseas añadir o eliminar tags? Introduce 1 ó 2:\n"
+            "1. Añadir tags\n2. Eliminar tags. \n3 No quiero editar los tags.")
         opcion = get_option([1, 2, 3])
         # Añadir tags
         if opcion == 1:
@@ -592,7 +589,8 @@ class NormalUserShell(cmd.Cmd):
         if self.conexion is True:
             if self.titulo == "":
                 print(
-                    f"{Colors.FAIL}No tienes ningún título seleccionado. /Debes realizar una búsqueda y seleccionar un título.\n{Colors.ENDC}")
+                    f"{Colors.FAIL}No tienes ningún título seleccionado. "
+                    f"Debes realizar una búsqueda y seleccionar un título.\n{Colors.ENDC}")
             else:
                 self.token_usuario = validate_token(
                     self.nombre_usuario, self.hassed_pass, self.token_usuario, self.authenticator)
@@ -610,7 +608,8 @@ class NormalUserShell(cmd.Cmd):
                         file_descriptor.write(recibido)
                 file_handler.close()
         else:
-            print(f"{Colors.FAIL}No se puede subir descargar ningún archivo ya que no se ha podido conectar con los servicios.{Colors.ENDC}")
+            print(f"{Colors.FAIL}No se puede subir descargar ningún archivo ya "
+            f"que no se ha podido conectar con los servicios.{Colors.ENDC}")
 
     def do_cerrar_sesion(self, arg):
         """Cerrar sesión en el usuario"""
@@ -639,19 +638,24 @@ class Client(Ice.Application):
     # ----- Clase Cliente ----- #
 
     def run(self, args):
-        MAX_ATTEMPTS = 5
-        attempts = 0
+        """Método que se ejecutará cuando se llame a esta clase para conectar al main"""
+        attempts  = 5
+        tries = 0
         broker = self.communicator()
-        while attempts < MAX_ATTEMPTS:
+        while tries < attempts:
             try:
-                topic_manager = IceStorm.TopicManagerPrx.checkedCast(broker.propertyToProxy("IceStorm.TopicManager"))
+                topic_manager = IceStorm.TopicManagerPrx.checkedCast(
+                    self.communicator().propertyToProxy("IceStorm.TopicManager")
+                )
                 break
             except Ice.ConnectionRefusedException:
-                print(f"{Colors.FAIL}Error de conexión al Topic Manager, intentando de nuevo en 5 segundos...{Colors.ENDC}")
+                print(f"{Colors.FAIL}Error de conexión al Topic Manager,"
+                f"intentando de nuevo en 5 segundos...{Colors.ENDC}")
                 time.sleep(5)
-                attempts += 1
+                tries += 1
         else:
-            raise RuntimeError(f'{Colors.FAIL}No se ha podido conectar al Topic Manager en {MAX_ATTEMPTS} intentos{Colors.ENDC}')
+            raise RuntimeError(f"{Colors.FAIL}No se ha contectado al Topic Manager en {attempts}"
+            f"intentos{Colors.ENDC}")
 
         announcement_topic = topic_manager.retrieve("Announcements")
         announcement_servant = AnnouncementI(True)
@@ -665,15 +669,14 @@ class Client(Ice.Application):
         if not announcement_servant.event.wait(timeout=60):
             raise RuntimeError(
                 f'{Colors.FAIL}No se ha encontrado ningún main en 60 segundos{Colors.ENDC}')
-        else:
-            announcement_topic.unsubscribe(announcement_proxy)
-            hilo = Thread(target=ClientShell(
-                announcement_servant.main, broker).cmdloop(), daemon=True)
-            hilo.start()
-            sys.stdout.flush()
-            self.shutdownOnInterrupt()
-            broker.waitForShutdown()
-
+        
+        announcement_topic.unsubscribe(announcement_proxy)
+        hilo = Thread(target=ClientShell(
+            announcement_servant.main, broker).cmdloop(), daemon=True)
+        hilo.start()
+        sys.stdout.flush()
+        self.shutdownOnInterrupt()
+        broker.waitForShutdown()
         return 1
 
 sys.exit(Client().main(sys.argv))
